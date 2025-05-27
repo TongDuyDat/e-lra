@@ -1,0 +1,5 @@
+*/__pycache__
+*.jpg
+checkpoints
+*.pyc
+*.png

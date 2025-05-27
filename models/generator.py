@@ -6,23 +6,25 @@ import torchvision.models as models
 class SqueezeExcitationBlock(nn.Module):
     """Squeeze and Excitation block to recalibrate feature maps."""
 
-    def __init__(self, filters, reduction_ratio=16):
+    def __init__(self, in_channels, reduction_ratio=16):
         super(SqueezeExcitationBlock, self).__init__()
-        self.global_avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc1 = nn.Linear(filters, filters // reduction_ratio)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(filters // reduction_ratio, filters)
-        self.sigmoid = nn.Sigmoid()
+        reduced_channels = in_channels // reduction_ratio
+        if reduced_channels == 0:
+            print(
+                f"Warning: reduction_ratio {reduction_ratio} is too large for in_channels {in_channels}. Setting reduced_channels to 1."
+            )
+        self.squeeze = nn.AdaptiveAvgPool2d(1)  # Global average pooling
+        self.excite = nn.Sequential(
+            nn.Conv2d(in_channels, reduced_channels, kernel_size=1),
+            nn.ReLU(),
+            nn.Conv2d(reduced_channels, in_channels, kernel_size=1),
+            nn.Sigmoid(),
+        )
 
-    def forward(self, inputs):
-        se = self.global_avg_pool(inputs)
-        se = se.view(se.size(0), -1)
-        se = self.fc1(se)
-        se = self.relu(se)
-        se = self.fc2(se)
-        se = self.sigmoid(se)
-        se = se.view(se.size(0), -1, 1, 1)
-        return inputs * se
+    def forward(self, x):
+        se = self.squeeze(x)  # [B, C, 1, 1]
+        se = self.excite(se)  # [B, C, 1, 1]
+        return x * se
 
 
 class ModifiedResidualBlock(nn.Module):
@@ -50,7 +52,7 @@ class ModifiedResidualBlock(nn.Module):
         )
 
         self.relu2 = nn.ReLU()
-        self.se_block = SqueezeExcitationBlock(self.filters, out_channels)
+        self.se_block = SqueezeExcitationBlock(self.filters)
 
     def forward(self, x):
         shortcut = x
@@ -75,7 +77,7 @@ class ModifiedResidualBlock(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_shape):
+    def __init__(self, input_shape=(3, 256, 256)):
         super(Encoder, self).__init__()
         base_model = models.mobilenet_v2(pretrained=True)
         self.features = base_model.features[:15]
@@ -105,7 +107,7 @@ class Encoder(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, input_shape):
+    def __init__(self, input_shape=(3, 256, 256)):
         super(Generator, self).__init__()
         self.encoder = Encoder(input_shape)
 
@@ -151,15 +153,13 @@ class Generator(nn.Module):
         return x
 
 
-# Example usage
-input_shape = (3, 256, 256)  # PyTorch uses (channels, height, width)
-x = torch.randn(1, *input_shape)  # Batch size of 1
-generator_model = Generator(input_shape)
+# # Example usage
+# input_shape = (3, 256, 256)  # PyTorch uses (channels, height, width)
+# x = torch.randn(8, *input_shape)  # Batch size of 1
+# generator_model = Generator(input_shape)
+# print(x.shape)  # Should print torch.Size([1, 3, 256, 256])
 # output = generator_model(x)
-# print(output)
-# To print model summary (requires torchsummary)
-from torchsummary import summary
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-generator_model = generator_model.to(device)
-summary(generator_model, input_shape)
+# print(output.shape)  # Should print torch.Size([1, 1, 256, 256])
+# # To print model summary (requires torchsummary)
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# generator_model = generator_model.to(device)

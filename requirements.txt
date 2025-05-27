@@ -1,0 +1,30 @@
+
+# YOLOv5 requirements
+# Usage: pip install -r requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.1.2+cu118
+torchvision==0.16.2+cu118
+torchaudio==2.1.2
+# Base ------------------------------------------------------------------------
+gitpython
+matplotlib
+numpy
+opencv-python==4.10.0.84
+pillow
+psutil
+PyYAML
+requests
+scipy
+thop
+tqdm
+
+# Plotting --------------------------------------------------------------------
+seaborn
+
+# Deploy ----------------------------------------------------------------------
+setuptools
+# Extras ----------------------------------------------------------------------
+wheel==0.43.0 # not directly required, pinned by Snyk to avoid a vulnerability
+scikit-learn==1.5.0
+tensorflow==2.16.1
+easydict==1.13
