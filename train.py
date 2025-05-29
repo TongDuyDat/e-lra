@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from data.processing_CVC import CVC_CliniCDBDataset
 from loss_functions.loss import CombinedLoss
 from models import GanModel, Generator, DiscriminatorWithConvCRF
+from models.e_lra import DiscriminatorWithLRA
 from utils import SegmentationMetrics, check_loss_nan
 import logging
 import csv
@@ -286,7 +287,7 @@ if __name__ == "__main__":
 
     model = GanModel(
         generator=Generator(input_shape=(3, 256, 256)),
-        discriminator=DiscriminatorWithConvCRF(4),
+        discriminator=DiscriminatorWithLRA(4),
         model_name="GAN",
         version="1.0",
         description="GAN for image segmentation",
