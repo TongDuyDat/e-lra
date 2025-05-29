@@ -96,7 +96,9 @@ class DiscriminatorWithLRA(nn.Module):
         self.lra = LRA(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
         self.refined = nn.Conv2d(inchannels, inchannels, kernel_size=1, stride=1)
         self.simoid = nn.Sigmoid()
-
+        print(
+            f"DiscriminatorWithLRA"
+        )
     def forward(self, inputs, masks):
         x = torch.cat([inputs, masks], dim=1)
         f = self.conv(x)

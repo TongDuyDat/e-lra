@@ -67,7 +67,9 @@ class DiscriminatorWithConvCRF(nn.Module):
                 ConCRF(inchannels, inchannels, kernel_size=3, strides=1),
             )
         self.simoid = nn.Sigmoid()
-
+        print(
+            f"DiscriminatorWithConvCRF"
+        )
     def forward(self, inputs, masks):
 
         x = torch.cat([inputs, masks], dim=1)
