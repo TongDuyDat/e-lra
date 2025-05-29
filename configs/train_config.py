@@ -9,10 +9,10 @@ class GANTrainingConfig(object):
     output_channels: int = 2
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     # Training parameters
-    num_epochs: int = 100
+    num_epochs: int = 1000
     batch_size: int = 16
-    lr_generator: float = 0.0002
-    lr_discriminator: float = 0.0002
+    lr_generator: float = 1e-4
+    lr_discriminator: float = 1e-4
     beta1: float = 0.5
     beta2: float = 0.999
     
@@ -30,7 +30,7 @@ class GANTrainingConfig(object):
     log_interval: int = 100
     checkpoint_dir: str = "./checkpoints"
     output_dir: str = "./outputs"
-    max_checkpoints: int = 5
+    max_checkpoints: int = 1000
     
     # Early stopping
     early_stopping_patience: int = 20
