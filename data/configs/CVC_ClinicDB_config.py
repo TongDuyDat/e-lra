@@ -2,7 +2,7 @@
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-DATASET_SOURCE = "D:/NCKH/NCKH2025/LGPS/datasets/merge_dataset/images"
+DATASET_SOURCE = "D:/NCKH/NCKH2025/LGPS/datasets/out_dataset"
 IMAGE_SIZE = (256, 256)
 NORMALIZE = True
 
