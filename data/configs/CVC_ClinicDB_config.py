@@ -2,7 +2,7 @@
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-DATASET_SOURCE = "D:/NCKH/NCKH2025/LGPS/datasets/out_dataset"
+DATASET_SOURCE = "/kaggle/input/lgps-data"
 IMAGE_SIZE = (256, 256)
 NORMALIZE = True
 
