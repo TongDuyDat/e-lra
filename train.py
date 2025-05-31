@@ -8,9 +8,10 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from data.processing_CVC import CVC_CliniCDBDataset
 from loss_functions.loss import CombinedLoss
+from loss_functions.metrics import SegmentationMetrics
 from models import GanModel, Generator, DiscriminatorWithConvCRF
 from models.e_lra import DiscriminatorWithLRA
-from utils import SegmentationMetrics, check_loss_nan
+from utils import check_loss_nan
 import logging
 import csv
 from datetime import datetime
@@ -102,6 +103,7 @@ class GANTrainer:
             "precision": logs["precision"],
             "accuracy": logs["accuracy"],
             "dice": logs["dice"],
+            "f2":logs["f2"]
         }
         with open(self.csv_file, "a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=self.csv_fields)
@@ -112,9 +114,16 @@ class GANTrainer:
         self.model.train()
         total_g_loss = 0
         total_d_loss = 0
-
-        with tqdm(self.train_loader, unit="batch") as tepoch:
-            for data, targets in tepoch:
+        metrics = {
+            "mean_iou": 0,
+            "recall": 0,
+            "precision": 0,
+            "accuracy": 0,
+            "dice": 0,
+            "f2":0
+        }
+        with tqdm(self.train_loader, unit="batch") as pbar:
+            for data, targets in pbar:
                 data = data.to(self.config.device).to(torch.float32)
                 targets = targets.to(self.config.device).to(torch.float32)
                 # Train generator
@@ -127,10 +136,23 @@ class GANTrainer:
                 if check_loss_nan(d_loss):
                     self.logger.error("NaN detected in discriminator loss. Stopping training.")
                     raise ValueError("NaN in discriminator loss")
-
+                metric = self.metrics.update(fake_mask, targets)
+                metric = self.metrics.compute()
+                for key in metrics:
+                    if key in metric:
+                        metrics[key] += metric[key]
+                pbar.update(1)
+                logs = {
+                    "mean_iou": metrics["mean_iou"] / pbar.n,
+                    "recall": metrics["recall"] / pbar.n,
+                    "precision": metrics["precision"] / pbar.n,
+                    "accuracy": metrics["accuracy"] / pbar.n,
+                    "dice": metrics["dice"] / pbar.n,
+                    "f2": metrics["f2"] / pbar.n
+                }
                 total_d_loss += d_loss
                 total_g_loss += g_loss
-                tepoch.set_postfix(g_loss=g_loss, d_loss=d_loss)
+                pbar.set_postfix(g_loss=g_loss, d_loss=d_loss, **logs)
 
         avg_g_loss = total_g_loss / len(self.train_loader)
         avg_d_loss = total_d_loss / len(self.train_loader)
@@ -180,6 +202,7 @@ class GANTrainer:
             "precision": 0,
             "accuracy": 0,
             "dice": 0,
+            "f2":0
         }
         with tqdm(self.val_loader, desc="Validating", leave=False) as pbar:
             for data, targets in self.val_loader:
@@ -204,6 +227,7 @@ class GANTrainer:
                     "precision": metrics["precision"] / pbar.n,
                     "accuracy": metrics["accuracy"] / pbar.n,
                     "dice": metrics["dice"] / pbar.n,
+                    "f2": metrics["f2"] / pbar.n
                 }
                 pbar.set_postfix(logs)
         avg_val_loss = total_val_loss / len(self.val_loader)
