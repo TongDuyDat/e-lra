@@ -54,7 +54,7 @@ class GANTrainer:
         self.csv_file = os.path.join(self.log_dir, "metrics.csv")
         self.csv_fields = [
             "epoch", "train_g_loss", "train_d_loss", "val_loss",
-            "mean_iou", "recall", "precision", "accuracy", "dice"
+            "mean_iou", "recall", "precision", "accuracy", "dice", "f2"
         ]
         with open(self.csv_file, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=self.csv_fields)
@@ -76,6 +76,7 @@ class GANTrainer:
                 f"Mean IoU: {logs['mean_iou']:.4f}, Dice: {logs['dice']:.4f}, "
                 f"Recall: {logs['recall']:.4f}, Precision: {logs['precision']:.4f}, "
                 f"Accuracy: {logs['accuracy']:.4f}"
+                f"F2: {logs['f2']:.4f}"
             )
             self.logger.info(log_message)
 
