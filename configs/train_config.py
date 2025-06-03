@@ -9,7 +9,7 @@ class GANTrainingConfig(object):
     output_channels: int = 2
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     # Training parameters
-    num_epochs: int = 1000
+    num_epochs: int = 500
     batch_size: int = 16
     lr_generator: float = 1e-4
     lr_discriminator: float = 1e-4

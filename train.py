@@ -238,7 +238,7 @@ class GANTrainer:
 
     def reduce_learning_rate(self, epoch):
         """Learning rate scheduling"""
-        if epoch % 30 == 0 and epoch > 0:
+        if epoch % 100 == 0 and epoch > 0:
             for param_group in self.optimizer_G.param_groups:
                 param_group["lr"] *= 0.5
             for param_group in self.optimizer_D.param_groups:
