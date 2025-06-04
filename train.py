@@ -16,18 +16,22 @@ import logging
 import csv
 from datetime import datetime
 
+
 class GANTrainer:
     def __init__(
         self,
         model,
-        train_loader,
-        val_loader,
+        data_train,
+        data_val,
+        batch_size = None,
         config_path=None,
     ):
         self.load_config(config_path)
+        if batch_size is not None:
+            self.config.batch_size = batch_size
         self.model = model
-        self.train_loader = train_loader
-        self.val_loader = val_loader
+        self.data_train = data_train
+        self.data_val = data_val
         self._setup_training()
         self._setup_logging()
 
@@ -53,8 +57,22 @@ class GANTrainer:
         # Setup CSV file for metrics
         self.csv_file = os.path.join(self.log_dir, "metrics.csv")
         self.csv_fields = [
-            "epoch", "train_g_loss", "train_d_loss", "val_loss",
-            "mean_iou", "recall", "precision", "accuracy", "dice", "f2"
+            "epoch",
+            "train_g_loss",
+            "train_d_loss",
+            "val_loss",
+            "mean_iou",
+            "recall",
+            "precision",
+            "accuracy",
+            "dice",
+            "f2",
+            "train_mean_iou",
+            "train_precision",
+            "train_recall",
+            "train_f2",
+            "train_accuracy",
+            "train_dice",
         ]
         with open(self.csv_file, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=self.csv_fields)
@@ -65,7 +83,7 @@ class GANTrainer:
         self.model.to(self.config.device)
         self.logger.info("Starting training...")
         for epoch in range(self.config.num_epochs):
-            train_g_loss, train_d_loss = self.train_one_epoch()
+            train_g_loss, train_d_loss, train_log = self.train_one_epoch()
             val_loss, logs = self.validate()
 
             # Log to console and file
@@ -81,30 +99,44 @@ class GANTrainer:
             self.logger.info(log_message)
 
             # Save metrics to CSV
-            self._log_to_csv(epoch + 1, train_g_loss, train_d_loss, val_loss, logs)
+            self._log_to_csv(
+                epoch + 1, train_g_loss, train_d_loss, val_loss, logs, train_log
+            )
 
             # Save best model
             is_best = False
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
                 is_best = True
-            self.save_model(epoch=epoch, is_best=is_best)
+            self.save_model(proj_name=self.log_dir, is_best=is_best)
             # Learning rate scheduling
-            self.reduce_learning_rate(epoch)
+            self.scheduler_G.step()
+            self.scheduler_D.step()
 
-    def _log_to_csv(self, epoch, train_g_loss, train_d_loss, val_loss, logs):
+    def _log_to_csv(
+        self, epoch, train_g_loss, train_d_loss, val_loss, logs, train_logs
+    ):
         """Save metrics to CSV file"""
         metrics = {
             "epoch": epoch,
             "train_g_loss": train_g_loss,
             "train_d_loss": train_d_loss,
             "val_loss": val_loss,
+            # Added training metrics
+            "train_mean_iou": train_logs["mean_iou"],
+            "train_recall": train_logs["recall"],
+            "train_precision": train_logs["precision"],
+            "train_accuracy": train_logs["accuracy"],
+            "train_dice": train_logs["dice"],
+            "train_f2": train_logs["f2"],
+            # Added val_metrics
+            "val_loss": val_loss,
             "mean_iou": logs["mean_iou"],
             "recall": logs["recall"],
             "precision": logs["precision"],
             "accuracy": logs["accuracy"],
             "dice": logs["dice"],
-            "f2":logs["f2"]
+            "f2": logs["f2"],
         }
         with open(self.csv_file, "a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=self.csv_fields)
@@ -121,7 +153,7 @@ class GANTrainer:
             "precision": 0,
             "accuracy": 0,
             "dice": 0,
-            "f2":0
+            "f2": 0,
         }
         with tqdm(self.train_loader, unit="batch") as pbar:
             for data, targets in pbar:
@@ -130,12 +162,16 @@ class GANTrainer:
                 # Train generator
                 g_loss, fake_mask = self.train_generator(data, targets)
                 if check_loss_nan(g_loss):
-                    self.logger.error("NaN detected in generator loss. Stopping training.")
+                    self.logger.error(
+                        "NaN detected in generator loss. Stopping training."
+                    )
                     raise ValueError("NaN in generator loss")
                 # Train discriminator
                 d_loss = self.train_discriminator(data, fake_mask, targets)
                 if check_loss_nan(d_loss):
-                    self.logger.error("NaN detected in discriminator loss. Stopping training.")
+                    self.logger.error(
+                        "NaN detected in discriminator loss. Stopping training."
+                    )
                     raise ValueError("NaN in discriminator loss")
                 metric = self.metrics.update(fake_mask, targets)
                 metric = self.metrics.compute()
@@ -149,7 +185,7 @@ class GANTrainer:
                     "precision": metrics["precision"] / pbar.n,
                     "accuracy": metrics["accuracy"] / pbar.n,
                     "dice": metrics["dice"] / pbar.n,
-                    "f2": metrics["f2"] / pbar.n
+                    "f2": metrics["f2"] / pbar.n,
                 }
                 total_d_loss += d_loss
                 total_g_loss += g_loss
@@ -157,7 +193,7 @@ class GANTrainer:
 
         avg_g_loss = total_g_loss / len(self.train_loader)
         avg_d_loss = total_d_loss / len(self.train_loader)
-        return avg_g_loss, avg_d_loss
+        return avg_g_loss, avg_d_loss, logs
 
     def train_discriminator(self, data, mask_fakes, targets):
         """Train discriminator one step"""
@@ -203,11 +239,13 @@ class GANTrainer:
             "precision": 0,
             "accuracy": 0,
             "dice": 0,
-            "f2":0
+            "f2": 0,
         }
         with tqdm(self.val_loader, desc="Validating", leave=False) as pbar:
             for data, targets in self.val_loader:
-                data, targets = data.to(self.config.device), targets.to(self.config.device)
+                data, targets = data.to(self.config.device), targets.to(
+                    self.config.device
+                )
                 data, targets = data.to(torch.float32), targets.to(torch.float32)
                 outputs = self.model.generate(data)
                 combined_loss = self.generator_loss(outputs, targets)
@@ -228,7 +266,7 @@ class GANTrainer:
                     "precision": metrics["precision"] / pbar.n,
                     "accuracy": metrics["accuracy"] / pbar.n,
                     "dice": metrics["dice"] / pbar.n,
-                    "f2": metrics["f2"] / pbar.n
+                    "f2": metrics["f2"] / pbar.n,
                 }
                 pbar.set_postfix(logs)
         avg_val_loss = total_val_loss / len(self.val_loader)
@@ -243,7 +281,9 @@ class GANTrainer:
                 param_group["lr"] *= 0.5
             for param_group in self.optimizer_D.param_groups:
                 param_group["lr"] *= 0.5
-            self.logger.info(f"Reduced learning rate to {param_group['lr']:.6f} at epoch {epoch}")
+            self.logger.info(
+                f"Reduced learning rate to {param_group['lr']:.6f} at epoch {epoch}"
+            )
 
     def _setup_training(self):
         """Setup optimizers, schedulers, and loss functions"""
@@ -273,6 +313,12 @@ class GANTrainer:
         self.metrics = SegmentationMetrics(
             num_classes=2, device="cuda", iou_foreground_only=True
         )
+        self.train_loader = DataLoader(
+            self.data_train, batch_size=self.config.batch_size, shuffle=True
+        )
+        self.val_loader = DataLoader(
+            self.data_val, batch_size=self.config.batch_size, shuffle=False
+        )
 
     def load_config(self, config_path):
         module_name = config_path.split("/")[-1].replace(".py", "")
@@ -285,30 +331,35 @@ class GANTrainer:
         GANTrainingConfig = getattr(module, "GANTrainingConfig")
         self.config = GANTrainingConfig()
 
-    def save_model(self, epoch, is_best=False):
-        os.makedirs(self.config.checkpoint_dir, exist_ok=True)
-        last_model_path = f"{self.config.checkpoint_dir}/last_model.pth"
+    def save_model(self, proj_name, is_best=False):
+        weights_dir = self.config.checkpoint_dir
+        if self.log_dir is not None:
+            weights_dir = os.path.join(self.log_dir, "weights")
+        os.makedirs(weights_dir, exist_ok=True)
+        last_model_path = f"{weights_dir}/last_model.pth"
         self.model.save_checkpoint(last_model_path)
         self.logger.info(f"Saved model checkpoint at {last_model_path}")
         if is_best:
-            best_model_path = f"{self.config.checkpoint_dir}/best_gan_model.pth"
+            best_model_path = f"{weights_dir}/best_gan_model.pth"
             self.model.save_best_checkpoint(best_model_path)
             self.logger.info(f"Saved best model checkpoint at {best_model_path}")
 
+
 if __name__ == "__main__":
     import argparse
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    parser = argparse.ArgumentParser(description="Train GAN model for image segmentation")
-    parser.add_argument('--data', default="data/configs/CVC_ClinicDB_config.py")
-    parser.add_argument('--config', default="configs/train_config.py")
-    parser.add_argument('--train-batch-size', type=int, default=8)
-    parser.add_argument('--val-batch-size', type=int, default=8)
+    parser = argparse.ArgumentParser(
+        description="Train GAN model for image segmentation"
+    )
+    parser.add_argument("--data", default="data/configs/CVC_ClinicDB_config.py")
+    parser.add_argument("--config", default="configs/train_config.py")
+    parser.add_argument("--batch-size", type=int, default=16)
     args = parser.parse_args()
 
     dataset_config_path = args.data
     trainer_config_path = args.config
-    train_batch_size = args.train_batch_size
-    val_batch_size = args.val_batch_size
+    batch_size = args.batch_size
 
     model = GanModel(
         generator=Generator(input_shape=(3, 256, 256)),
@@ -320,13 +371,12 @@ if __name__ == "__main__":
 
     train_dataset = CVC_CliniCDBDataset(config_path=dataset_config_path, phase="train")
     val_dataset = CVC_CliniCDBDataset(config_path=dataset_config_path, phase="val")
-    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=val_batch_size)
 
     trainer = GANTrainer(
         model=model,
-        train_loader=train_loader,
-        val_loader=val_loader,
+        data_train=train_dataset,
+        data_val=val_dataset,
+        batch_size=batch_size,
         config_path=trainer_config_path,
     )
     trainer.train()
