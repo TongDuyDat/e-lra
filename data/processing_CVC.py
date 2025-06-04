@@ -68,7 +68,7 @@ class CVC_CliniCDBDataset(Dataset):
 
         # Áp dụng transforms nếu có
         if self.transforms:
-            transformed = self.transforms(image=image, mask=mask)
+            transformed = self.transforms[self.phase](image=image, mask=mask)
             image = transformed["image"]
             mask = transformed["mask"]
 
@@ -88,36 +88,36 @@ class CVC_CliniCDBDataset(Dataset):
         return image, mask
 
 
-if __name__ == "__main__":
-    dataset = CVC_CliniCDBDataset(config_path="data/configs/CVC_ClinicDB_config.py")
-    print(f"Number of images: {len(dataset)}")
-    # print("Transform pipeline:", dataset.transforms)
+# if __name__ == "__main__":
+#     dataset = CVC_CliniCDBDataset(config_path="data/configs/CVC_ClinicDB_config.py", phase="val")
+#     print(f"Number of images: {len(dataset)}")
+#     # print("Transform pipeline:", dataset.transforms)
 
-    from torch.utils.data import DataLoader
+#     from torch.utils.data import DataLoader
 
-    dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
-    images, masks = next(iter(dataloader))
-    for im0, mask in zip(images, masks):
-        print(f"Image shape: {im0.shape}, Mask shape: {mask.shape}")
-        import matplotlib.pyplot as plt
+#     dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
+#     images, masks = next(iter(dataloader))
+#     for im0, mask in zip(images, masks):
+#         print(f"Image shape: {im0.shape}, Mask shape: {mask.shape}")
+#         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(10, 5))
+#         plt.figure(figsize=(10, 5))
 
-        # Hiển thị ảnh gốc
-        plt.subplot(1, 2, 1)
-        plt.title("Image")
-        # Đảo ngược normalize để hiển thị ảnh
-        im_display = (im0.permute(1, 2, 0).numpy() + 1.0) * 127.5
-        im_display = im_display.astype(np.uint8)
-        plt.imshow(im_display)  # Đã ở RGB, không cần chuyển đổi thêm
-        plt.axis("off")
+#         # Hiển thị ảnh gốc
+#         plt.subplot(1, 2, 1)
+#         plt.title("Image")
+#         # Đảo ngược normalize để hiển thị ảnh
+#         im_display = (im0.permute(1, 2, 0).numpy() + 1.0) * 127.5
+#         im_display = im_display.astype(np.uint8)
+#         plt.imshow(im_display)  # Đã ở RGB, không cần chuyển đổi thêm
+#         plt.axis("off")
 
-        # Hiển thị mask
-        plt.subplot(1, 2, 2)
-        plt.title("Mask")
-        mask_display = mask.squeeze().numpy()  # Loại bỏ chiều channel nếu có
-        plt.imshow(mask_display, cmap="gray")  # Hiển thị mask dưới dạng grayscale
-        plt.axis("off")
+#         # Hiển thị mask
+#         plt.subplot(1, 2, 2)
+#         plt.title("Mask")
+#         mask_display = mask.squeeze().numpy()  # Loại bỏ chiều channel nếu có
+#         plt.imshow(mask_display, cmap="gray")  # Hiển thị mask dưới dạng grayscale
+#         plt.axis("off")
 
-        plt.show()
-    print(f"Images shape: {images.shape}, Masks shape: {masks.shape}")
+#         plt.show()
+#     print(f"Images shape: {images.shape}, Masks shape: {masks.shape}")
