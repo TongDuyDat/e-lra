@@ -175,6 +175,7 @@ class GANTrainer:
                     raise ValueError("NaN in discriminator loss")
                 metric = self.metrics.update(fake_mask, targets)
                 metric = self.metrics.compute()
+                self.metrics.reset()
                 for key in metrics:
                     if key in metric:
                         metrics[key] += metric[key]
@@ -255,6 +256,7 @@ class GANTrainer:
                 total_val_loss += combined_loss.item()
                 metric = self.metrics.update(outputs, targets)
                 metric = self.metrics.compute()
+                self.metrics.reset()
                 for key in metrics:
                     if key in metric:
                         metrics[key] += metric[key]
@@ -273,17 +275,6 @@ class GANTrainer:
         logs = {key: metrics[key] / len(self.val_loader) for key in metrics}
         logs["val_loss"] = avg_val_loss
         return avg_val_loss, logs
-
-    def reduce_learning_rate(self, epoch):
-        """Learning rate scheduling"""
-        if epoch % 100 == 0 and epoch > 0:
-            for param_group in self.optimizer_G.param_groups:
-                param_group["lr"] *= 0.5
-            for param_group in self.optimizer_D.param_groups:
-                param_group["lr"] *= 0.5
-            self.logger.info(
-                f"Reduced learning rate to {param_group['lr']:.6f} at epoch {epoch}"
-            )
 
     def _setup_training(self):
         """Setup optimizers, schedulers, and loss functions"""
