@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 import torch
 import torch.nn as nn
+from torchprofile import profile_macs
 
 
 class GanModel(nn.Module):
@@ -31,6 +32,8 @@ class GanModel(nn.Module):
         self.version = version
         self.description = description
         self.config = config or {}
+        info_model = "Generator Parameters: {generator_params_M:.6f}M \nGenerator GFLOPs: {generator_gflops:.6f} \nDiscriminator Parameters: {discriminator_params_M:.6f}M  \nDiscriminator GFLOPs: {discriminator_gflops:.6f} \nTotal Parameters: {total_params_M:.6f}M \nTotal GFLOPs: {total_gflops:.6f}"
+        print(info_model.format(**self.count_parameters()))
 
     def generate(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -86,7 +89,7 @@ class GanModel(nn.Module):
         Returns:
             Đầu ra từ Generator
         """
-        return self.generate(inputs) # bs, 3, 256, 256
+        return self.generate(inputs)  # bs, 3, 256, 256
 
     def save_best_checkpoint(
         self,
@@ -116,7 +119,7 @@ class GanModel(nn.Module):
         print(f"Full GAN model saved at {path}")
 
     def load_checkpoint(self, path: str, train=False) -> None:
-        
+
         state = torch.load(path, map_location=next(self.parameters()).device)
         self.model_name = state["model_name"]
         self.version = state["version"]
@@ -130,3 +133,56 @@ class GanModel(nn.Module):
             else:
                 raise ValueError("Discriminator state not found in checkpoint")
         print(f"Model loaded from {path}")
+
+    def count_parameters(self) -> int:
+        """
+        Tính số lượng tham số (triệu) và GFLOPs của mô hình.
+
+        Args:
+            input_size: Kích thước đầu vào cho Generator và Discriminator (batch, channels, height, width)
+
+        Returns:
+            Dictionary chứa số tham số (M) và GFLOPs của Generator và Discriminator (nếu có)
+        """
+
+        # Hàm phụ để tính tham số
+        def get_num_params(model: nn.Module) -> int:
+            return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+        # Hàm phụ để tính MACs và chuyển thành GFLOPs
+        def get_gflops(model: nn.Module, input_tensor: torch.Tensor) -> float:
+            model.eval()
+            macs = profile_macs(model, input_tensor)
+            # 1 GFLOP = 1 tỷ FLOPs, ước lượng FLOPs ~ 2 * MACs
+            gflops = (2 * macs) / 1e9
+            return gflops
+
+        result = {}
+
+        # Tính cho Generator
+        gen_params = get_num_params(self.generator) / 1e6  # Triệu tham số
+        input_size = (1, 3, 256, 256)  # Giả sử đầu
+        sample_input = torch.randn(input_size).to(
+            next(self.generator.parameters()).device
+        )
+        gen_gflops = get_gflops(self.generator, sample_input)
+        result["generator_params_M"] = gen_params
+        result["generator_gflops"] = gen_gflops
+
+        # Tính cho Discriminator nếu có
+        if self.discriminator is not None:
+            disc_params = get_num_params(self.discriminator) / 1e6  # Triệu tham số
+            # Giả sử Discriminator nhận cặp (input, mask)
+            disc_input = (sample_input, self.generator(sample_input))
+            disc_gflops = get_gflops(self.discriminator, disc_input)
+            result["discriminator_params_M"] = disc_params
+            result["discriminator_gflops"] = disc_gflops
+            result["total_params_M"] = gen_params + disc_params
+            result["total_gflops"] = gen_gflops + disc_gflops
+        else:
+            result["discriminator_params_M"] = 0.0
+            result["discriminator_gflops"] = 0.0
+            result["total_params_M"] = gen_params
+            result["total_gflops"] = gen_gflops
+
+        return result
