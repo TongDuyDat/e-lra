@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
-
+from torchvision.models import MobileNet_V2_Weights
 
 class SqueezeExcitationBlock(nn.Module):
     """Squeeze and Excitation block to recalibrate feature maps."""
@@ -79,7 +79,7 @@ class ModifiedResidualBlock(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, input_shape=(3, 256, 256)):
         super(Encoder, self).__init__()
-        base_model = models.mobilenet_v2(pretrained=True)
+        base_model = models.mobilenet_v2(weights=MobileNet_V2_Weights.DEFAULT)
         self.features = base_model.features[:15]
         self.outputs = {}
         self.features[2].conv[0][2].register_forward_hook(

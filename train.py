@@ -6,7 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from data.processing_CVC import CVC_CliniCDBDataset
+from benmark import benchmark_model
+from data import DataBenchmark
 from loss_functions.loss import CombinedLoss
 from loss_functions.metrics import SegmentationMetrics
 from models import GanModel, Generator, DiscriminatorWithConvCRF
@@ -16,6 +17,8 @@ import logging
 import csv
 from datetime import datetime
 
+import warnings
+warnings.filterwarnings("ignore", message="No handlers found:.*Skipped")
 
 class GANTrainer:
     def __init__(
@@ -23,7 +26,7 @@ class GANTrainer:
         model,
         data_train,
         data_val,
-        batch_size = None,
+        batch_size=None,
         config_path=None,
     ):
         self.load_config(config_path)
@@ -326,6 +329,7 @@ class GANTrainer:
         weights_dir = self.config.checkpoint_dir
         if self.log_dir is not None:
             weights_dir = os.path.join(self.log_dir, "weights")
+        self.weights_dir = weights_dir
         os.makedirs(weights_dir, exist_ok=True)
         last_model_path = f"{weights_dir}/last_model.pth"
         self.model.save_checkpoint(last_model_path)
@@ -343,7 +347,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Train GAN model for image segmentation"
     )
-    parser.add_argument("--data", default="data/configs/CVC_ClinicDB_config.py")
+    parser.add_argument("--data", default="data/configs/CVC-ClinicDB.py")
     parser.add_argument("--config", default="configs/train_config.py")
     parser.add_argument("--batch-size", type=int, default=16)
     args = parser.parse_args()
@@ -356,13 +360,14 @@ if __name__ == "__main__":
         generator=Generator(input_shape=(3, 256, 256)),
         discriminator=DiscriminatorWithLRA(4),
         model_name="GAN",
-        version="1.0",
-        description="GAN for image segmentation",
+        version="DiscriminatorWithLRA",
+        description="GAN for image segmentation with LRA",
     )
 
-    train_dataset = CVC_CliniCDBDataset(config_path=dataset_config_path, phase="train")
-    val_dataset = CVC_CliniCDBDataset(config_path=dataset_config_path, phase="val")
-
+    datasets = DataBenchmark(config_path=dataset_config_path, phase="train")
+    print(len(datasets))
+    train_dataset, val_dataset = datasets.split_data(train_ratio=0.8, seed=42)
+    print(len(train_dataset), len(val_dataset))
     trainer = GANTrainer(
         model=model,
         data_train=train_dataset,
@@ -371,3 +376,14 @@ if __name__ == "__main__":
         config_path=trainer_config_path,
     )
     trainer.train()
+    benchmark_model(
+       f'{trainer.weights_dir}/best_gan_model.pth',
+       dataset_configs=[{"config_path": dataset_config_path, "name": "Dataset"}],
+       phase="val",
+       batch_size=batch_size,
+       model_class=model,
+       threshold=0.5,
+       verbose=True,
+       output_csv=f'{trainer.weights_dir}/benchmark_results.csv',
+       plot_output=f'{trainer.weights_dir}/benchmark_plot.png'
+    )

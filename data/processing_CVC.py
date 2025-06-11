@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from albumentations import ToTensorV2
 
 
-class CVC_CliniCDBDataset(Dataset):
+class BaseDataset(Dataset):
     def __init__(self, config_path, phase="train"):
         self.config_path = config_path
         self.phase = phase

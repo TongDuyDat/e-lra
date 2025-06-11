@@ -52,13 +52,13 @@ def benchmark_model(
     if model_class is None:
         model = GanModel(
             generator=Generator(input_shape=(3, 256, 256)),
-            discriminator=DiscriminatorWithConvCRF(4),
+            discriminator=DiscriminatorWithLRA(4),
             model_name="GAN",
             version="1.0",
             description="GAN for image segmentation",
         )
     else:
-        model = model_class()
+        model = model_class
 
     model.load_checkpoint(model_path)
     model.eval()
@@ -179,51 +179,55 @@ def plot_metrics(results_all, output_path):
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-if __name__ == "__main__":
-    # Ví dụ sử dụng
-    dataset_configs = [
-        {
-            'name': 'CVC_ClinicDB',
-            'config_path': 'data/configs/CVC-ClinicDB.py'
-        },
-        {
-            'name': 'CVC_300',
-            'config_path': 'data/configs/CVC_300.py'
-        },
-        {
-            'name': 'Kvasir_SEG',
-            'config_path': 'data/configs/kvasir-seg.py'
-        },
-        {
-            'name': 'positive_cropped_out',
-            'config_path': 'data/configs/positive_cropped_out.py'
-        },
-        {
-            'name': 'ETIS_LaribPolypDB',
-            'config_path': 'data/configs/ETIS-LaribPolypDB.py'
-        },
-        {
-            'name': 'kvasir-sessile',
-            'config_path': 'data/configs/kvasir-sessile.py'
-        }
-        # Thêm các dataset khác nếu có
-        # {
-        #     'name': 'Another_Dataset',
-        #     'config_path': 'data/configs/another_config.py'
-        # }
-    ]
+# if __name__ == "__main__":
+#     # Ví dụ sử dụng
+#     dataset_configs = [
+#         {
+#             'name': 'CVC_ClinicDB',
+#             'config_path': 'data/configs/CVC-ClinicDB.py'
+#         },
+#         {
+#             'name': 'CVC_300',
+#             'config_path': 'data/configs/CVC_300.py'
+#         },
+#         {
+#             'name': 'Kvasir_SEG',
+#             'config_path': 'data/configs/kvasir-seg.py'
+#         },
+#         {
+#             'name': 'PolypGen',
+#             'config_path': 'data/configs/PolypGen.py'
+#         },
+#         {
+#             'name': 'ETIS_LaribPolypDB',
+#             'config_path': 'data/configs/ETIS-LaribPolypDB.py'
+#         },
+#         {
+#             'name': 'kvasir-sessile',
+#             'config_path': 'data/configs/kvasir-sessile.py'
+#         },
+#         {
+#             "name": "CVC-ColonDB",
+#             "config_path": "data/configs/CVC-ColonDB.py"
+#         }
+#         # Thêm các dataset khác nếu có
+#         # {
+#         #     'name': 'Another_Dataset',
+#         #     'config_path': 'data/configs/another_config.py'
+#         # }
+#     ]
 
-    results = benchmark_model(
-        model_path="D:/NCKH/NCKH2025/LGPS/logs/logs_20250605_214639/logs_20250605_214639/weights/best_gan_model.pth",
-        dataset_configs=dataset_configs,
-        phase="val",
-        batch_size=8,
-        verbose=True
-    )
+#     results = benchmark_model(
+#         model_path="best_gan_model_LRA.pth",
+#         dataset_configs=dataset_configs,
+#         phase="val",
+#         batch_size=8,
+#         verbose=True
+#     )
 
-    # In lại tất cả kết quả
-    print("\nSummary of all results:")
-    for dataset_name, metrics in results.items():
-        print(f"\n{dataset_name}:")
-        for metric, value in metrics.items():
-            print(f"  {metric.capitalize()}: {value:.4f}")
+#     # In lại tất cả kết quả
+#     print("\nSummary of all results:")
+#     for dataset_name, metrics in results.items():
+#         print(f"\n{dataset_name}:")
+#         for metric, value in metrics.items():
+#             print(f"  {metric.capitalize()}: {value:.4f}")
