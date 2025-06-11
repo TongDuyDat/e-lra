@@ -15,6 +15,7 @@ def benchmark_model(
     phase="val",
     batch_size=8,
     device=None,
+    datasets = None,
     model_class=None,
     threshold=0.5,
     verbose=True,
@@ -78,7 +79,7 @@ def benchmark_model(
     csv_data = []
 
     # Đánh giá trên từng bộ dữ liệu
-    for config in dataset_configs:
+    for idx, config in enumerate(dataset_configs):
         dataset_name = config.get('name', 'Unnamed Dataset')
         config_path = config['config_path']
 
@@ -88,7 +89,16 @@ def benchmark_model(
 
         # Tải dataset
         try:
-            dataset = DataBenchmark(config_path=config_path)
+            if datasets is not None and idx < len(datasets):
+                dataset = datasets[idx]
+                dataset.phase = phase
+                print(f"Using pre-loaded dataset for {dataset_name} with phase {dataset.phase}")
+            else:
+                if not os.path.exists(config_path):
+                    print(f"Warning: Config file not found for {dataset_name}: {config_path}. Skipping...")
+                    continue
+                dataset = DataBenchmark(config_path=config_path, phase=phase)
+                print(f"Loaded dataset from config for {dataset_name}")
             dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4)
         except Exception as e:
             print(f"Error loading dataset {dataset_name}: {str(e)}. Skipping...")

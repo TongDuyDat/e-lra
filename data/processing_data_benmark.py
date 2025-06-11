@@ -58,3 +58,8 @@ class DataBenchmark(BaseDataset):
         self.mask_paths.extend(dataset.mask_paths)
         return self
 
+    def subset(self, indices, phase="train"):
+        subset_dataset = DataBenchmark(self.config_path, phase=phase)
+        subset_dataset.image_paths = [self.image_paths[i] for i in indices]
+        subset_dataset.mask_paths = [self.mask_paths[i] for i in indices]
+        return subset_dataset

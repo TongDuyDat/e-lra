@@ -18,16 +18,13 @@ import csv
 from datetime import datetime
 
 import warnings
+
 warnings.filterwarnings("ignore", message="No handlers found:.*Skipped")
+
 
 class GANTrainer:
     def __init__(
-        self,
-        model,
-        data_train,
-        data_val,
-        batch_size=None,
-        config_path=None,
+        self, model, data_train, data_val, batch_size=None, config_path=None, names=None
     ):
         self.load_config(config_path)
         if batch_size is not None:
@@ -35,6 +32,7 @@ class GANTrainer:
         self.model = model
         self.data_train = data_train
         self.data_val = data_val
+        self.names = names
         self._setup_training()
         self._setup_logging()
 
@@ -42,6 +40,8 @@ class GANTrainer:
         """Setup logging and CSV writer for metrics"""
         # Create log directory
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        if self.names is not None:
+            timestamp = self.names + "_" + timestamp
         self.log_dir = os.path.join(self.config.checkpoint_dir, f"logs_{timestamp}")
         os.makedirs(self.log_dir, exist_ok=True)
 
@@ -341,49 +341,146 @@ class GANTrainer:
 
 
 if __name__ == "__main__":
+    # import argparse
+
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # parser = argparse.ArgumentParser(
+    #     description="Train GAN model for image segmentation"
+    # )
+    # parser.add_argument("--data", default="data/configs/CVC-ClinicDB.py")
+    # parser.add_argument("--config", default="configs/train_config.py")
+    # parser.add_argument("--batch-size", type=int, default=16)
+    # args = parser.parse_args()
+
+    # dataset_config_path = args.data
+    # trainer_config_path = args.config
+    # batch_size = args.batch_size
+
+    # model = GanModel(
+    #     generator=Generator(input_shape=(3, 256, 256)),
+    #     discriminator=DiscriminatorWithLRA(4),
+    #     model_name="GAN",
+    #     version="DiscriminatorWithLRA",
+    #     description="GAN for image segmentation with LRA",
+    # )
+
+    # datasets = DataBenchmark(config_path=dataset_config_path, phase="train")
+    # print(len(datasets))
+    # train_dataset, val_dataset = datasets.split_data(train_ratio=0.8, seed=42)
+    # print(len(train_dataset), len(val_dataset))
+    # trainer = GANTrainer(
+    #     model=model,
+    #     data_train=train_dataset,
+    #     data_val=val_dataset,
+    #     batch_size=batch_size,
+    #     config_path=trainer_config_path,
+    # )
+    # trainer.train()
+    # benchmark_model(
+    #    f'{trainer.weights_dir}/best_gan_model.pth',
+    #    dataset_configs=[{"config_path": dataset_config_path, "name": "Dataset"}],
+    #    phase="val",
+    #    batch_size=batch_size,
+    #    model_class=model,
+    #    threshold=0.5,
+    #    verbose=True,
+    #    output_csv=f'{trainer.weights_dir}/benchmark_results.csv',
+    #    plot_output=f'{trainer.weights_dir}/benchmark_plot.png'
+    # )
     import argparse
+    import torch
+    from sklearn.model_selection import KFold
+    from torch.utils.data import Subset
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     parser = argparse.ArgumentParser(
-        description="Train GAN model for image segmentation"
+        description="Train GAN model with 5-fold cross-validation for each dataset"
     )
-    parser.add_argument("--data", default="data/configs/CVC-ClinicDB.py")
+    parser.add_argument(
+        "--data",
+        nargs="+",
+        default=["data/configs/CVC-ClinicDB.py", "data/configs/kvasir-seg.py"],
+        help="List of dataset config paths (e.g., CVC-ClinicDB, Kvasir)",
+    )
     parser.add_argument("--config", default="configs/train_config.py")
     parser.add_argument("--batch-size", type=int, default=16)
     args = parser.parse_args()
 
-    dataset_config_path = args.data
     trainer_config_path = args.config
     batch_size = args.batch_size
 
-    model = GanModel(
-        generator=Generator(input_shape=(3, 256, 256)),
-        discriminator=DiscriminatorWithLRA(4),
-        model_name="GAN",
-        version="DiscriminatorWithLRA",
-        description="GAN for image segmentation with LRA",
-    )
+    # Define dataset configurations
+    dataset_configs = [
+        {"config_path": path, "name": path.split("/")[-1].split(".")[0]}
+        for path in args.data
+    ]
 
-    datasets = DataBenchmark(config_path=dataset_config_path, phase="train")
-    print(len(datasets))
-    train_dataset, val_dataset = datasets.split_data(train_ratio=0.8, seed=42)
-    print(len(train_dataset), len(val_dataset))
-    trainer = GANTrainer(
-        model=model,
-        data_train=train_dataset,
-        data_val=val_dataset,
-        batch_size=batch_size,
-        config_path=trainer_config_path,
-    )
-    trainer.train()
-    benchmark_model(
-       f'{trainer.weights_dir}/best_gan_model.pth',
-       dataset_configs=[{"config_path": dataset_config_path, "name": "Dataset"}],
-       phase="val",
-       batch_size=batch_size,
-       model_class=model,
-       threshold=0.5,
-       verbose=True,
-       output_csv=f'{trainer.weights_dir}/benchmark_results.csv',
-       plot_output=f'{trainer.weights_dir}/benchmark_plot.png'
-    )
+    for dataset_config in dataset_configs:
+        dataset_name = dataset_config["name"]
+        print(f"\n=== Processing dataset: {dataset_name} ===")
+
+        # Load the dataset
+        datasets = DataBenchmark(
+            config_path=dataset_config["config_path"], phase="train"
+        )
+        print(f"Dataset {dataset_name} size: {len(datasets)}")
+        # Initialize 5-fold cross-validation
+        kfold = KFold(n_splits=5, shuffle=True, random_state=42)
+        fold_idx = 1
+
+        for train_indices, test_indices in kfold.split(datasets):
+            print(f"\n=== Training fold {fold_idx}/5 for dataset: {dataset_name} ===")
+            # Create train and validation subsets for the current fold
+            train_datasets = datasets.subset(train_indices, phase="train")
+            train_dataset, val_dataset = train_datasets.split_data(
+                train_ratio=0.8, seed=42
+            )
+            test_dataset = datasets.subset(test_indices, phase="val")
+            print(
+                f"Fold {fold_idx} - Train split: {len(train_dataset)}, Val split: {len(val_dataset)}, Test split: {len(test_dataset)}"
+            )
+
+            # Initialize a new GAN model for each fold
+            model = GanModel(
+                generator=Generator(input_shape=(3, 256, 256)),
+                discriminator=DiscriminatorWithLRA(4),
+                model_name="GAN",
+                version="DiscriminatorWithLRA",
+                description=f"GAN for image segmentation with LRA on {dataset_name} fold {fold_idx}",
+            )
+
+            # Initialize and train the GAN trainer
+            trainer = GANTrainer(
+                model=model,
+                data_train=train_dataset,
+                data_val=val_dataset,
+                batch_size=batch_size,
+                config_path=trainer_config_path,
+                names=f"{dataset_name}_fold{fold_idx}",
+            )
+            trainer.train()
+
+            # Benchmark the model for the current fold
+            benchmark_model(
+                f"{trainer.weights_dir}/best_gan_model.pth",
+                dataset_configs=[
+                    {
+                        "config_path": dataset_config["config_path"],
+                        "name": f"{dataset_name}_fold{fold_idx}",
+                    }
+                ],
+                phase="val",
+                batch_size=batch_size,
+                model_class=model,
+                datasets=[test_dataset],
+                threshold=0.5,
+                verbose=True,
+                output_csv=f"{trainer.weights_dir}/benchmark_results_{dataset_name}_fold{fold_idx}.csv",
+                plot_output=f"{trainer.weights_dir}/benchmark_plot_{dataset_name}_fold{fold_idx}.png",
+            )
+            print(f"=== Completed fold {fold_idx}/5 for dataset: {dataset_name} ===")
+            fold_idx += 1
+
+        print(
+            f"=== Completed 5-fold cross-validation for dataset: {dataset_name} ===\n"
+        )

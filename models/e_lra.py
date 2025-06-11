@@ -114,8 +114,8 @@ class DiscriminatorWithLRA(nn.Module):
         return x
 
 
-model = DiscriminatorWithLRA(4)
-image = torch.randn(1, 3, 256, 256)
-mask = torch.randn(1, 1, 256, 256)
-output = model(image, mask)
-print(output.shape)  # Expected output shape: [1, 512, 16, 16]
+# model = DiscriminatorWithLRA(4)
+# image = torch.randn(1, 3, 256, 256)
+# mask = torch.randn(1, 1, 256, 256)
+# output = model(image, mask)
+# print(output.shape)  # Expected output shape: [1, 512, 16, 16]
