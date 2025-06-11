@@ -1,7 +1,7 @@
 # config.py
 import albumentations as A
 
-DATASET_SOURCE = "D:/NCKH/NCKH2025/LGPS/datasets/extracts/data_benmarks/CVC-ClinicDB"
+DATASET_SOURCE = "D:/Tongdat/datasets/data_benmarks/CVC-ClinicDB"
 IMAGE_SIZE = (256, 256)
 NORMALIZE = True
 
