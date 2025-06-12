@@ -3,3 +3,10 @@
 checkpoints
 *.pyc
 *.png
+*.png
+*.ipynb
+*.log
+*.csv
+*.tif
+*.json
+*.pth

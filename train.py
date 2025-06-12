@@ -387,100 +387,189 @@ if __name__ == "__main__":
     #    output_csv=f'{trainer.weights_dir}/benchmark_results.csv',
     #    plot_output=f'{trainer.weights_dir}/benchmark_plot.png'
     # )
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    #++++++++++++++Train GAN model with 5-fold cross-validation for each dataset++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    # import argparse
+    # import torch
+    # from sklearn.model_selection import KFold
+    # from torch.utils.data import Subset
+
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # parser = argparse.ArgumentParser(
+    #     description="Train GAN model with 5-fold cross-validation for each dataset"
+    # )
+    # parser.add_argument(
+    #     "--data",
+    #     nargs="+",
+    #     default=["data/configs/CVC-ClinicDB.py", "data/configs/kvasir-seg.py"],
+    #     help="List of dataset config paths (e.g., CVC-ClinicDB, Kvasir)",
+    # )
+    # parser.add_argument("--config", default="configs/train_config.py")
+    # parser.add_argument("--batch-size", type=int, default=16)
+    # args = parser.parse_args()
+
+    # trainer_config_path = args.config
+    # batch_size = args.batch_size
+
+    # # Define dataset configurations
+    # dataset_configs = [
+    #     {"config_path": path, "name": path.split("/")[-1].split(".")[0]}
+    #     for path in args.data
+    # ]
+
+    # for dataset_config in dataset_configs:
+    #     dataset_name = dataset_config["name"]
+    #     print(f"\n=== Processing dataset: {dataset_name} ===")
+
+    #     # Load the dataset
+    #     datasets = DataBenchmark(
+    #         config_path=dataset_config["config_path"], phase="train"
+    #     )
+    #     print(f"Dataset {dataset_name} size: {len(datasets)}")
+    #     # Initialize 5-fold cross-validation
+    #     kfold = KFold(n_splits=5, shuffle=True, random_state=42)
+    #     fold_idx = 1
+
+    #     for train_indices, test_indices in kfold.split(datasets):
+    #         print(f"\n=== Training fold {fold_idx}/5 for dataset: {dataset_name} ===")
+    #         # Create train and validation subsets for the current fold
+    #         train_datasets = datasets.subset(train_indices, phase="train")
+    #         train_dataset, val_dataset = train_datasets.split_data(
+    #             train_ratio=0.8, seed=42
+    #         )
+    #         test_dataset = datasets.subset(test_indices, phase="val")
+    #         print(
+    #             f"Fold {fold_idx} - Train split: {len(train_dataset)}, Val split: {len(val_dataset)}, Test split: {len(test_dataset)}"
+    #         )
+
+    #         # Initialize a new GAN model for each fold
+    #         model = GanModel(
+    #             generator=Generator(input_shape=(3, 256, 256)),
+    #             discriminator=DiscriminatorWithLRA(4),
+    #             model_name="GAN",
+    #             version="DiscriminatorWithLRA",
+    #             description=f"GAN for image segmentation with LRA on {dataset_name} fold {fold_idx}",
+    #         )
+
+    #         # Initialize and train the GAN trainer
+    #         trainer = GANTrainer(
+    #             model=model,
+    #             data_train=train_dataset,
+    #             data_val=val_dataset,
+    #             batch_size=batch_size,
+    #             config_path=trainer_config_path,
+    #             names=f"{dataset_name}_fold{fold_idx}",
+    #         )
+    #         trainer.train()
+
+    #         # Benchmark the model for the current fold
+    #         benchmark_model(
+    #             f"{trainer.weights_dir}/best_gan_model.pth",
+    #             dataset_configs=[
+    #                 {
+    #                     "config_path": dataset_config["config_path"],
+    #                     "name": f"{dataset_name}_fold{fold_idx}",
+    #                 }
+    #             ],
+    #             phase="val",
+    #             batch_size=batch_size,
+    #             model_class=model,
+    #             datasets=[test_dataset],
+    #             threshold=0.5,
+    #             verbose=True,
+    #             output_csv=f"{trainer.weights_dir}/benchmark_results_{dataset_name}_fold{fold_idx}.csv",
+    #             plot_output=f"{trainer.weights_dir}/benchmark_plot_{dataset_name}_fold{fold_idx}.png",
+    #         )
+    #         print(f"=== Completed fold {fold_idx}/5 for dataset: {dataset_name} ===")
+    #         fold_idx += 1
+
+    #     print(
+    #         f"=== Completed 5-fold cross-validation for dataset: {dataset_name} ===\n"
+    #     )
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    #++++++++++++++Train GAN model with protocol 3++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
     import argparse
     import torch
-    from sklearn.model_selection import KFold
-    from torch.utils.data import Subset
+    import os
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     parser = argparse.ArgumentParser(
-        description="Train GAN model with 5-fold cross-validation for each dataset"
+        description="Train GAN model with cross-dataset evaluation using dataset methods"
     )
     parser.add_argument(
-        "--data",
+        "--train-data",
         nargs="+",
-        default=["data/configs/CVC-ClinicDB.py", "data/configs/kvasir-seg.py"],
-        help="List of dataset config paths (e.g., CVC-ClinicDB, Kvasir)",
+        default=["data/configs/kvasir-seg.py", "data/configs/CVC-ClinicDB.py"],
+        help="List of dataset config paths for training (e.g., Kvasir, CVC-ClinicDB)"
+    )
+    parser.add_argument(
+        "--test-data",
+        default="data/configs/ETIS-Larib.py",
+        help="Dataset config path for testing (e.g., ETIS-Larib)"
     )
     parser.add_argument("--config", default="configs/train_config.py")
     parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--names", type=str, default=None)
     args = parser.parse_args()
 
     trainer_config_path = args.config
     batch_size = args.batch_size
+    names = args.names
+    # Load training datasets
+    train_datasets = []
+    for config_path in args.train_data:
+        dataset = DataBenchmark(config_path=config_path, phase="train")
+        train_datasets.append(dataset)
+    print(f"Loaded training datasets: {[d.config_path.split('/')[-1] for d in train_datasets]}")
 
-    # Define dataset configurations
-    dataset_configs = [
-        {"config_path": path, "name": path.split("/")[-1].split(".")[0]}
-        for path in args.data
-    ]
+    # Merge training datasets
+    combined_train_dataset = train_datasets[0]
+    for dataset in train_datasets[1:]:
+        combined_train_dataset = combined_train_dataset.merge_data(dataset)
+    print(f"Combined training dataset size: {len(combined_train_dataset)}")
 
-    for dataset_config in dataset_configs:
-        dataset_name = dataset_config["name"]
-        print(f"\n=== Processing dataset: {dataset_name} ===")
+    # Split combined training dataset into train (80%) and val (20%)
+    train_dataset, val_dataset = combined_train_dataset.split_data(train_ratio= 0.8, seed = 42)
+    print(f"Train split: {len(train_dataset)}, Val split: {len(val_dataset)}")
 
-        # Load the dataset
-        datasets = DataBenchmark(
-            config_path=dataset_config["config_path"], phase="train"
-        )
-        print(f"Dataset {dataset_name} size: {len(datasets)}")
-        # Initialize 5-fold cross-validation
-        kfold = KFold(n_splits=5, shuffle=True, random_state=42)
-        fold_idx = 1
+    # Load test dataset
+    test_dataset = DataBenchmark(config_path=args.test_data, phase="val")
+    print(f"Loaded test dataset: {args.test_data.split('/')[-1]}, size: {len(test_dataset)}")
 
-        for train_indices, test_indices in kfold.split(datasets):
-            print(f"\n=== Training fold {fold_idx}/5 for dataset: {dataset_name} ===")
-            # Create train and validation subsets for the current fold
-            train_datasets = datasets.subset(train_indices, phase="train")
-            train_dataset, val_dataset = train_datasets.split_data(
-                train_ratio=0.8, seed=42
-            )
-            test_dataset = datasets.subset(test_indices, phase="val")
-            print(
-                f"Fold {fold_idx} - Train split: {len(train_dataset)}, Val split: {len(val_dataset)}, Test split: {len(test_dataset)}"
-            )
+    # Initialize a new GAN model
+    model = GanModel(
+        generator=Generator(input_shape=(3, 256, 256)),
+        discriminator=DiscriminatorWithLRA(4),
+        model_name="GAN",
+        version="DiscriminatorWithLRA",
+        description=f"GAN for cross-dataset segmentation on {','.join(args.train_data)}"
+    )
 
-            # Initialize a new GAN model for each fold
-            model = GanModel(
-                generator=Generator(input_shape=(3, 256, 256)),
-                discriminator=DiscriminatorWithLRA(4),
-                model_name="GAN",
-                version="DiscriminatorWithLRA",
-                description=f"GAN for image segmentation with LRA on {dataset_name} fold {fold_idx}",
-            )
+    # Initialize and train the GAN trainer
+    trainer = GANTrainer(
+        model=model,
+        data_train=train_dataset,
+        data_val=val_dataset,
+        batch_size=batch_size,
+        config_path=trainer_config_path,
+        names=names
+    )
+    trainer.train()
 
-            # Initialize and train the GAN trainer
-            trainer = GANTrainer(
-                model=model,
-                data_train=train_dataset,
-                data_val=val_dataset,
-                batch_size=batch_size,
-                config_path=trainer_config_path,
-                names=f"{dataset_name}_fold{fold_idx}",
-            )
-            trainer.train()
+    # Benchmark the model on the test set
+    benchmark_model(
+        f'{trainer.weights_dir}/best_gan_model.pth',
+        dataset_configs=[{"config_path": args.test_data, "name": args.test_data.split('/')[-1].split('.')[0]}],
+        datasets=[test_dataset],  # Use test_dataset directly
+        phase="val",
+        batch_size=batch_size,
+        model_class=model,
+        threshold=0.5,
+        verbose=True,
+        output_csv=f'{trainer.weights_dir}/benchmark_results_{names}.csv',
+        plot_output=f'{trainer.weights_dir}/benchmark_plot_{names}.png'
+    )
 
-            # Benchmark the model for the current fold
-            benchmark_model(
-                f"{trainer.weights_dir}/best_gan_model.pth",
-                dataset_configs=[
-                    {
-                        "config_path": dataset_config["config_path"],
-                        "name": f"{dataset_name}_fold{fold_idx}",
-                    }
-                ],
-                phase="val",
-                batch_size=batch_size,
-                model_class=model,
-                datasets=[test_dataset],
-                threshold=0.5,
-                verbose=True,
-                output_csv=f"{trainer.weights_dir}/benchmark_results_{dataset_name}_fold{fold_idx}.csv",
-                plot_output=f"{trainer.weights_dir}/benchmark_plot_{dataset_name}_fold{fold_idx}.png",
-            )
-            print(f"=== Completed fold {fold_idx}/5 for dataset: {dataset_name} ===")
-            fold_idx += 1
-
-        print(
-            f"=== Completed 5-fold cross-validation for dataset: {dataset_name} ===\n"
-        )
+    print(f"=== Completed cross-dataset training and evaluation ===")
