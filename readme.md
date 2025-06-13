@@ -45,12 +45,12 @@ E-LRA is designed to address the challenges of polyp segmentation in colonoscopy
 Place the datasets in the data/ directory.
 1. Train the model:
    ```bash
-   python train.py
+   python train.py --config "configs/train_config.py"--batch-size 16
 2. Evaluate the model:download the pretrained model from [here](https://)
    ```bash
-   python benchmark.py --data_path "data/CVC-ClinicDB" --model_path "XXX.h5"
+   python benchmark.py --data_path "data/CVC-ClinicDB""
 ## Results
-
+Update
 
 ## Citation
 
