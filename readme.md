@@ -14,7 +14,7 @@ This repository contains the official implementation of **E-LRA**, a lightweight
 
 ## Abstract
 E-LRA is designed to address the challenges of polyp segmentation in colonoscopy images, offering a balance between accuracy and computational efficiency.
-- **Lightweight Design**: Only **1.07 million parameters**, making it **17x smaller** than the smallest existing model.
+- **Lightweight Design**: Only **1.07 million parameters**, making it **smaller** than the smallest existing model.
 - **State-of-the-Art Performance**: Achieves a **Dice coefficient of 0.959** and an **IoU of 0.925** on the challenging Kvasir-SEG dataset.
 - **Robust Generalization**: Validated on five benchmark datasets, including Kvasir-SEG, CVC-ClinicDB, ETIS, CVC-300, and PolypGen.
 - **Real-Time Applicability**: Optimized for low-latency inference, ideal for clinical deployment.
