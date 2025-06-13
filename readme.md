@@ -1,57 +1,131 @@
-
 # E-LRA: Efficient Edge-Aware GAN for Lightweight and Accurate Polyp Segmentation
 
 This repository contains the official implementation of **E-LRA**, a lightweight GAN-based framework for polyp segmentation in colonoscopy images. E-LRA achieves state-of-the-art performance with only **1.07 million parameters**, making it highly suitable for real-time clinical applications.
 
-
 ## Table of Contents
-1. [Introduction](#introduction)
-2. [Key Features](#key-features)
-3. [Installation](#installation)
-4. [Usage](#usage)
-5. [Datasets](#datasets)
-6. [Results](#results)
-7. [Citation](#citation)
-8. [License](#license)
-9. [Contact](#contact)
+1. [Abstract](#abstract)
+2. [Installation](#installation)
+3. [Usage](#usage)
+4. [Datasets](#datasets)
+5. [Results](#results)
+6. [Citation](#citation)
+7. [License](#license)
+8. [Contact](#contact)
 
+## Abstract
+E-LRA is designed to address the challenges of polyp segmentation in colonoscopy images, offering a balance between accuracy and computational efficiency.
+- **Lightweight Design**: Only **1.07 million parameters**, making it **17x smaller** than the smallest existing model.
+- **State-of-the-Art Performance**: Achieves a **Dice coefficient of 0.959** and an **IoU of 0.925** on the challenging Kvasir-SEG dataset.
+- **Robust Generalization**: Validated on five benchmark datasets, including Kvasir-SEG, CVC-ClinicDB, ETIS, CVC-300, and PolypGen.
+- **Real-Time Applicability**: Optimized for low-latency inference, ideal for clinical deployment.
 
-## Introduction
-E-LRA is designed to address the challenges of polyp segmentation in colonoscopy images, offering a balance between accuracy
-
-## Key Features
-- **Lightweight Design:** Only **1.07 million parameters**, making it **17x smaller** than the smallest existing model.
-- **State-of-the-Art Performance:** Achieves a **Dice coefficient of 0.959** and an **IoU of 0.925** on the challenging Kvasir_SEG dataset.
-- **Robust Generalization:** Validated on five benchmark datasets, including Kvasir-SEG, CVC-ClinicDB, ETIS, CVC-300, and PolypGen.
-- **Real-Time Applicability:** 
-
----
 ## Installation
 ### Prerequisites
-### steps
+- Python 3.8+
+- PyTorch 1.9.0 or higher
+- NVIDIA GPU (recommended for training)
+- CUDA 11.6 or higher
+
+### Steps
 1. Clone this repository:
    ```bash
    git clone https://github.com/TongDuyDat/lgps_pytorch.git
+   cd lgps_pytorch
+   ```
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
-## Datasets
-- Kvasir-SEG: [Download](https://datasets.simula.no/kvasir-seg/)
-- CVC-ClinicDB: [Download](https://polyp.grand-challenge.org/CVCClinicDB/)
-- ETIS: Download [Download](https://polyp.grand-challenge.org/ETISLarib/)
-- CVC-300: [Download](http://pages.cvc.uab.es/CVC-Colon/)
-- PolypGen: [Download](https://drive.google.com/drive/folders/16uL9n84SrMt7IiQFzTUQNaJ9TbHJ8DhW)
+   ```
+   Note: Ensure `requirements.txt` includes dependencies like `torch`, `torchvision`, `numpy`, `opencv-python`, `albumentations`, and `scikit-image`. Refer to the file for the complete list.
 
-Place the datasets in the data/ directory.
-1. Train the model:
+3. Verify installation:
    ```bash
-   python train.py --config "configs/train_config.py"--batch-size 16
-2. Evaluate the model:download the pretrained model from [here](https://)
-   ```bash
-   python benchmark.py --data_path "data/CVC-ClinicDB""
+   python -c "import torch; print(torch.__version__)"
+   ```
+
+## Usage
+### Setting Up Dataset File Paths
+The `data_config.py` file in the `data/configs/` directory specifies the dataset path for training and evaluation. Below is an example configuration for the **CVC-300** dataset:
+
+```python
+DATASET_SOURCE = "data/data_benchmarks/CVC-300"
+```
+
+#### Instructions for Setting Up File Paths
+- **DATASET_SOURCE**: Defines the path to the dataset directory (e.g., `"data/data_benchmarks/CVC-300"`). Update this to point to the desired dataset, such as `Kvasir-SEG`, `CVC-ClinicDB`, `ETIS`, or `PolypGen`.
+- **Example Update**: To use the Kvasir-SEG dataset, modify the `DATASET_SOURCE` in `data/configs/train_config.py`:
+  ```python
+  DATASET_SOURCE = "data/data_benchmarks/Kvasir-SEG"
+  ```
+- **Directory Structure**: Ensure the dataset is organized in the `data/` directory with subfolders for images and masks:
+  ```
+  datasets/
+    ├── images/
+    │   ├── image1.jpg
+    │   ├── image2.jpg
+    │   └── ...
+    └── masks/
+        ├── mask1.png
+        ├── mask2.png
+        └── ...
+```
+- **Saving Changes**: After updating the `DATASET_SOURCE`, save the `data/configs/train_config.py` file before running the training or evaluation scripts.
+
+### Training
+Train the model using the provided configuration:
+```bash
+python train.py --config "configs/train_config.py" --batch-size 16
+```
+- The `train_config.py` file contains hyperparameters (e.g., learning rate, epochs). Modify it as needed.
+- Training logs and checkpoints will be saved in the `outputs/` directory.
+
+### Evaluation
+Evaluate the model using a pretrained checkpoint:
+```bash
+python benchmark.py --data_path "data/CVC-ClinicDB" --checkpoint "path/to/pretrained_model.pth"
+```
+- Download the pretrained model from [this link](https://example.com/pretrained_model) (replace with the actual URL from the repository).
+- Metrics (Dice, IoU) will be reported for the specified dataset.
+
+## Datasets
+E-LRA has been validated on the following benchmark datasets:
+- **Kvasir-SEG**: [Download](https://datasets.simula.no/kvasir-seg/)
+- **CVC-ClinicDB**: [Download](https://polyp.grand-challenge.org/CVCClinicDB/)
+- **ETIS**: [Download](https://polyp.grand-challenge.org/ETISLarib/)
+- **CVC-300**: [Download](http://pages.cvc.uab.es/CVC-Colon/)
+- **PolypGen**: [Download](https://drive.google.com/drive/folders/16uL9n84SrMt7IiQFzTUQNaJ9TbHJ8DhW)
+
 ## Results
-Update
+E-LRA achieves state-of-the-art performance across multiple datasets. We are use 900 and
+550 images from the Kvasir-SEG and CVC-ClinicDB datasets,
+respectively, are used as the training set, while the remaining
+100 and 62 images are used as the testing set. The table below summarizes the key metrics for six datasets, with values rounded to four decimal places:
+
+| Dataset | Dice | Recall | Precision | Accuracy | F2 | Mean_iou |
+| --- | --- | --- | --- | --- | --- | --- |
+| CVC_ClinicDB | 0.8673 | 0.8647 | 0.8986 | 0.9829 | 0.8632 | 0.8035 |
+| CVC_300 | 0.8913 | 0.9304 | 0.8826 | 0.9938 | 0.9093 | 0.8234 |
+| Kvasir_SEG | 0.9595 | 0.9585 | 0.9640 | 0.9892 | 0.9584 | 0.9254 |
+| ETIS_LaribPolypDB | 0.6947 | 0.7497 | 0.6961 | 0.9851 | 0.7189 | 0.6139 |
+| kvasir-sessile | 0.9425 | 0.9399 | 0.9496 | 0.9921 | 0.9405 | 0.8950 |
+| CVC-ColonDB | 0.7393 | 0.7392 | 0.8130 | 0.9616 | 0.7328 | 0.6521 |
 
 ## Citation
+If you use E-LRA in your research, please cite our paper:
+```bibtex
+@article{,
+  title={E-LRA: Efficient Edge-Aware GAN for Lightweight and Accurate Polyp Segmentation},
+  author={},
+  journal={},
+  year={}
+}
+```
 
 ## License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Contact
+For questions or collaboration, please contact:
+- **Author**: Duy Dat Tong
+- **GitHub**: [TongDuyDat](https://github.com/TongDuyDat)
+- **Email**: dattongduy1.0@gmail.com
