@@ -1,6 +1,6 @@
 # An Efficient Boundary-Aware Adversarial Model for Polyp Segmentation in Colonoscopy Images
 
-This repository contains the official implementation of **E-LRA**, a lightweight GAN-based framework for polyp segmentation in colonoscopy images. E-LRA achieves state-of-the-art performance with only **1.07 million parameters**, making it highly suitable for real-time clinical applications.
+This repository contains the official implementation of **E-LRA**, An Efficient Boundary-Aware Adversarial Model for Polyp Segmentation in Colonoscopy Images. E-LRA achieves state-of-the-art performance with only **1.07 million parameters**, making it highly suitable for real-time clinical applications.
 
 ## Table of Contents
 1. [Abstract](#abstract)
@@ -13,7 +13,7 @@ This repository contains the official implementation of **E-LRA**, a lightweight
 8. [Contact](#contact)
 
 ## Abstract
-Accurate and efficient segmentation of colorectal polyps from colonoscopic images is essential for early cancer detection and clinical decision-making. This study presents a compact adversarial segmentation framework that integrates edge-guided attention with a refinement-aware discriminator, aiming to improve boundary localization under constrained computational resources. Despite its lightweight architecture, the proposed model consistently surpasses both transformer-based and mobile-efficient baselines across five public datasets. Notably, it achieves state-of-the-art performance on the Kvasir dataset, while maintaining competitive accuracy in challenging cross-domain scenarios where existing large-scale models often experience generalization degradation. Extensive ablation studies validate the contribution of each architectural component, and inference-time analysis reveals tightly bounded latency variation (about 8.5\%), suggesting its potential for deployment in real-time clinical workflows. These results indicate that well-designed adversarial learning can effectively balance accuracy, robustness, and efficiency in biomedical image segmentation.
+Accurate and efficient segmentation of colorectal polyps from colonoscopic images is essential for early cancer detection and clinical decision-making. This study presents a compact adversarial segmentation model that integrates edge-guided attention with a refinement-aware discriminator, aiming to improve boundary localization under constrained computational resources. Despite its lightweight architecture, the proposed model consistently surpasses both transformer-based and mobile-efficient baselines across five public datasets. Notably, it achieves state-of-the-art performance on the Kvasir dataset, while maintaining competitive accuracy in challenging cross-domain scenarios where existing large-scale models often experience generalization degradation. Extensive ablation studies validate the contribution of each architectural component, and inference-time analysis reveals tightly bounded latency variation (about 8.5\%) even under CPU-only settings, suggesting its potential for deployment in real-time clinical workflows. These results indicate that well-designed adversarial learning can effectively balance accuracy, robustness, and efficiency in biomedical image segmentation.
 ![image](sources/model.jpg)
 ## Installation
 ### Prerequisites
