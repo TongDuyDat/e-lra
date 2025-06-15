@@ -91,26 +91,11 @@ E-LRA has been validated on the following benchmark datasets:
 - **CVC-300**: [Download](http://pages.cvc.uab.es/CVC-Colon/)
 - **PolypGen**: [Download](https://drive.google.com/drive/folders/16uL9n84SrMt7IiQFzTUQNaJ9TbHJ8DhW)
 
-## Results
-E-LRA achieves state-of-the-art performance across multiple datasets. We are use 900 and
-550 images from the Kvasir-SEG and CVC-ClinicDB datasets,
-respectively, are used as the training set, while the remaining
-100 and 62 images are used as the testing set. The table below summarizes the key metrics for six datasets, with values rounded to four decimal places:
-
-| Dataset | Dice | Recall | Precision | Accuracy | F2 | Mean_iou |
-| --- | --- | --- | --- | --- | --- | --- |
-| CVC_ClinicDB | 0.8673 | 0.8647 | 0.8986 | 0.9829 | 0.8632 | 0.8035 |
-| CVC_300 | 0.8913 | 0.9304 | 0.8826 | 0.9938 | 0.9093 | 0.8234 |
-| Kvasir_SEG | 0.9595 | 0.9585 | 0.9640 | 0.9892 | 0.9584 | 0.9254 |
-| ETIS_LaribPolypDB | 0.6947 | 0.7497 | 0.6961 | 0.9851 | 0.7189 | 0.6139 |
-| kvasir-sessile | 0.9425 | 0.9399 | 0.9496 | 0.9921 | 0.9405 | 0.8950 |
-| CVC-ColonDB | 0.7393 | 0.7392 | 0.8130 | 0.9616 | 0.7328 | 0.6521 |
-
 ## Citation
 If you use E-LRA in your research, please cite our paper:
 ```bibtex
 @article{,
-  title={E-LRA: Efficient Edge-Aware GAN for Lightweight and Accurate Polyp Segmentation},
+  title={An Efficient Boundary-Aware Adversarial Model for Polyp Segmentation in Colonoscopy Images},
   author={},
   journal={},
   year={}
