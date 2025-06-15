@@ -1,4 +1,4 @@
-# E-LRA: Efficient Edge-Aware GAN for Lightweight and Accurate Polyp Segmentation
+# An Efficient Boundary-Aware Adversarial Model for Polyp Segmentation in Colonoscopy Images
 
 This repository contains the official implementation of **E-LRA**, a lightweight GAN-based framework for polyp segmentation in colonoscopy images. E-LRA achieves state-of-the-art performance with only **1.07 million parameters**, making it highly suitable for real-time clinical applications.
 
@@ -13,12 +13,8 @@ This repository contains the official implementation of **E-LRA**, a lightweight
 8. [Contact](#contact)
 
 ## Abstract
-E-LRA is designed to address the challenges of polyp segmentation in colonoscopy images, offering a balance between accuracy and computational efficiency.
-- **Lightweight Design**: Only **1.07 million parameters**, making it **smaller** than the smallest existing model.
-- **State-of-the-Art Performance**: Achieves a **Dice coefficient of 0.959** and an **IoU of 0.925** on the challenging Kvasir-SEG dataset.
-- **Robust Generalization**: Validated on five benchmark datasets, including Kvasir-SEG, CVC-ClinicDB, ETIS, CVC-300, and PolypGen.
-- **Real-Time Applicability**: Optimized for low-latency inference, ideal for clinical deployment.
-
+Accurate and efficient segmentation of colorectal polyps from colonoscopic images is essential for early cancer detection and clinical decision-making. This study presents a compact adversarial segmentation framework that integrates edge-guided attention with a refinement-aware discriminator, aiming to improve boundary localization under constrained computational resources. Despite its lightweight architecture, the proposed model consistently surpasses both transformer-based and mobile-efficient baselines across five public datasets. Notably, it achieves state-of-the-art performance on the Kvasir dataset, while maintaining competitive accuracy in challenging cross-domain scenarios where existing large-scale models often experience generalization degradation. Extensive ablation studies validate the contribution of each architectural component, and inference-time analysis reveals tightly bounded latency variation (about 8.5\%), suggesting its potential for deployment in real-time clinical workflows. These results indicate that well-designed adversarial learning can effectively balance accuracy, robustness, and efficiency in biomedical image segmentation.
+![image](sources/model.jpg)
 ## Installation
 ### Prerequisites
 - Python 3.8+
