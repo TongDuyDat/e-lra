@@ -25,8 +25,8 @@ Accurate and efficient segmentation of colorectal polyps from colonoscopic image
 ### Steps
 1. Clone this repository:
    ```bash
-   git clone https://github.com/TongDuyDat/lgps_pytorch.git
-   cd lgps_pytorch
+   git clone https://github.com/TongDuyDat/e-lra.git
+   cd e-lra
    ```
 2. Install dependencies:
    ```bash
