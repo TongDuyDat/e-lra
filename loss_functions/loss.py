@@ -1,3 +1,4 @@
+# The file reference from https://github.com/Falmi/LGPS/
 import torch
 import numpy as np
 from torch import nn

@@ -1,3 +1,4 @@
+# The file reference from https://github.com/Falmi/LGPS/
 import torch
 import torch.nn as nn
 import torchvision.models as models

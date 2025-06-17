@@ -1,7 +1,6 @@
+# The file reference from https://github.com/Falmi/LGPS/
 from torch import nn
 import torch
-
-
 class ConCRF(nn.Module):
     def __init__(self, in_chanels, num_classes, kernel_size=3, strides=1, padding=None):
         """
