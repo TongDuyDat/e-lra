@@ -1,7 +1,7 @@
 # config.py
 import albumentations as A
 
-DATASET_SOURCE = "D:/Tongdat/datasets/data_benmarks/kvasir-sessile"
+DATASET_SOURCE = "data/data_benmarks/kvasir-sessile"
 IMAGE_SIZE = (256, 256)
 NORMALIZE = True
 

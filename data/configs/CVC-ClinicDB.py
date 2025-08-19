@@ -1,7 +1,7 @@
 # config.py
 import albumentations as A
 
-DATASET_SOURCE = "D:/Tongdat/datasets/data_benmarks/CVC-ClinicDB"
+DATASET_SOURCE = "data/data_benmarks/CVC-ClinicDB"
 IMAGE_SIZE = (256, 256)
 NORMALIZE = True
 

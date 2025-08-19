@@ -16,6 +16,7 @@ from utils import check_loss_nan
 import logging
 import csv
 from datetime import datetime
+import time
 
 import warnings
 
@@ -279,6 +280,104 @@ class GANTrainer:
         logs["val_loss"] = avg_val_loss
         return avg_val_loss, logs
 
+    @torch.no_grad()
+    def measure_inference_time(self, dataset, num_runs_per_image=1, max_images=100):
+        """Measure inference time for each image in the dataset on CPU."""
+        self.model.eval()
+        self.model.to('cpu')  # Chuyển mô hình sang CPU
+        self.logger.info("Measuring inference time per image on CPU...")
+        print("Measuring inference time per image on CPU...")
+
+        # Tạo DataLoader để duyệt qua từng ảnh
+        data_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+
+        # Chuẩn bị file CSV
+        inference_csv_file = os.path.join(self.log_dir, "inference_time_per_image.csv")
+        csv_fields = [
+            "image_index",
+            "generator_time_ms",
+            "discriminator_time_ms",
+            "total_time_ms",
+            "timestamp"
+        ]
+        results = []
+
+        # Duyệt qua từng ảnh
+        for idx, (data, target) in enumerate(tqdm(data_loader, desc="Processing images", unit="image")):
+            data = data.to('cpu').to(torch.float32)
+            target = target.to('cpu').to(torch.float32)
+            if idx > max_images:
+                break
+            # Warm-up run cho ảnh hiện tại (tùy chọn, giảm nếu CPU yếu)
+            for _ in range(3):
+                _ = self.model.generator(data)
+                _ = self.model.discriminator(data, target)
+
+            # Đo thời gian cho Generator
+            total_generator_time = 0
+            for _ in range(num_runs_per_image):
+                start_time = time.time()
+                _ = self.model.generator(data)
+                end_time = time.time()
+                total_generator_time += (end_time - start_time) * 1000  # Chuyển sang ms
+
+            # Đo thời gian cho Discriminator
+            total_discriminator_time = 0
+            for _ in range(num_runs_per_image):
+                start_time = time.time()
+                _ = self.model.discriminator(data, target)
+                end_time = time.time()
+                total_discriminator_time += (end_time - start_time) * 1000  # Chuyển sang ms
+
+            # Tính trung bình cho ảnh hiện tại
+            avg_generator_time = total_generator_time / num_runs_per_image
+            avg_discriminator_time = total_discriminator_time / num_runs_per_image
+            total_time = avg_generator_time + avg_discriminator_time
+
+            # Lưu kết quả cho ảnh hiện tại
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            result = {
+                "image_index": idx,
+                "generator_time_ms": avg_generator_time,
+                "discriminator_time_ms": avg_discriminator_time,
+                "total_time_ms": total_time,
+                "timestamp": timestamp
+            }
+            results.append(result)
+
+            # In kết quả cho ảnh hiện tại
+            print(
+                f"Image {idx}: "
+                f"Generator: {avg_generator_time:.2f} ms, "
+                f"Discriminator: {avg_discriminator_time:.2f} ms, "
+                f"Total: {total_time:.2f} ms"
+            )
+
+        # Ghi tất cả kết quả vào CSV
+        with open(inference_csv_file, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=csv_fields)
+            writer.writeheader()
+            for result in results:
+                writer.writerow(result)
+
+        self.logger.info(f"Saved per-image inference times to {inference_csv_file}")
+
+        # Tính trung bình trên tất cả ảnh
+        avg_generator = sum(r["generator_time_ms"] for r in results) / len(results)
+        avg_discriminator = sum(r["discriminator_time_ms"] for r in results) / len(results)
+        avg_total = sum(r["total_time_ms"] for r in results) / len(results)
+
+        log_message = (
+            f"Average inference time per image on CPU (across {len(results)} images):\n"
+            f"  Generator: {avg_generator:.2f} ms\n"
+            f"  Discriminator: {avg_discriminator:.2f} ms\n"
+            f"  Total: {avg_total:.2f} ms"
+        )
+        self.logger.info(log_message)
+        print(log_message)
+
+        return results
+
     def _setup_training(self):
         """Setup optimizers, schedulers, and loss functions"""
         self.best_val_loss = float("inf")
@@ -387,9 +486,9 @@ if __name__ == "__main__":
     #    output_csv=f'{trainer.weights_dir}/benchmark_results.csv',
     #    plot_output=f'{trainer.weights_dir}/benchmark_plot.png'
     # )
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-    #++++++++++++++Train GAN model with 5-fold cross-validation for each dataset++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    # ++++++++++++++Train GAN model with 5-fold cross-validation for each dataset++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
     # import argparse
     # import torch
     # from sklearn.model_selection import KFold
@@ -487,9 +586,9 @@ if __name__ == "__main__":
     #     print(
     #         f"=== Completed 5-fold cross-validation for dataset: {dataset_name} ===\n"
     #     )
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-    #++++++++++++++Train GAN model with protocol 3++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-    #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    # ++++++++++++++Train GAN model with protocol 3++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
     import argparse
     import torch
     import os
@@ -501,13 +600,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train-data",
         nargs="+",
-        default=["data/configs/kvasir-seg.py", "data/configs/CVC-ClinicDB.py"],
-        help="List of dataset config paths for training (e.g., Kvasir, CVC-ClinicDB)"
+        default=["data/configs/kvasir-seg.py", "data/configs/CVC_300.py"],
+        help="List of dataset config paths for training (e.g., Kvasir, CVC-ClinicDB)",
     )
     parser.add_argument(
         "--test-data",
-        default="data/configs/ETIS-Larib.py",
-        help="Dataset config path for testing (e.g., ETIS-Larib)"
+        default="data/configs/kvasir-seg.py",
+        help="Dataset config path for testing (e.g., ETIS-Larib)",
     )
     parser.add_argument("--config", default="configs/train_config.py")
     parser.add_argument("--batch-size", type=int, default=16)
@@ -522,7 +621,9 @@ if __name__ == "__main__":
     for config_path in args.train_data:
         dataset = DataBenchmark(config_path=config_path, phase="train")
         train_datasets.append(dataset)
-    print(f"Loaded training datasets: {[d.config_path.split('/')[-1] for d in train_datasets]}")
+    print(
+        f"Loaded training datasets: {[d.config_path.split('/')[-1] for d in train_datasets]}"
+    )
 
     # Merge training datasets
     combined_train_dataset = train_datasets[0]
@@ -531,12 +632,16 @@ if __name__ == "__main__":
     print(f"Combined training dataset size: {len(combined_train_dataset)}")
 
     # Split combined training dataset into train (80%) and val (20%)
-    train_dataset, val_dataset = combined_train_dataset.split_data(train_ratio= 0.8, seed = 42)
+    train_dataset, val_dataset = combined_train_dataset.split_data(
+        train_ratio=0.8, seed=42
+    )
     print(f"Train split: {len(train_dataset)}, Val split: {len(val_dataset)}")
 
     # Load test dataset
     test_dataset = DataBenchmark(config_path=args.test_data, phase="val")
-    print(f"Loaded test dataset: {args.test_data.split('/')[-1]}, size: {len(test_dataset)}")
+    print(
+        f"Loaded test dataset: {args.test_data.split('/')[-1]}, size: {len(test_dataset)}"
+    )
 
     # Initialize a new GAN model
     model = GanModel(
@@ -544,7 +649,7 @@ if __name__ == "__main__":
         discriminator=DiscriminatorWithLRA(4),
         model_name="GAN",
         version="DiscriminatorWithLRA",
-        description=f"GAN for cross-dataset segmentation on {','.join(args.train_data)}"
+        description=f"GAN for cross-dataset segmentation on {','.join(args.train_data)}",
     )
 
     # Initialize and train the GAN trainer
@@ -554,22 +659,22 @@ if __name__ == "__main__":
         data_val=val_dataset,
         batch_size=batch_size,
         config_path=trainer_config_path,
-        names=names
+        names=names,
     )
-    trainer.train()
-
+    # trainer.train()
+    trainer.measure_inference_time(test_dataset, max_images=100)
     # Benchmark the model on the test set
-    benchmark_model(
-        f'{trainer.weights_dir}/best_gan_model.pth',
-        dataset_configs=[{"config_path": args.test_data, "name": args.test_data.split('/')[-1].split('.')[0]}],
-        datasets=[test_dataset],  # Use test_dataset directly
-        phase="val",
-        batch_size=batch_size,
-        model_class=model,
-        threshold=0.5,
-        verbose=True,
-        output_csv=f'{trainer.weights_dir}/benchmark_results_{names}.csv',
-        plot_output=f'{trainer.weights_dir}/benchmark_plot_{names}.png'
-    )
+    # benchmark_model(
+    #     f'{trainer.weights_dir}/best_gan_model.pth',
+    #     dataset_configs=[{"config_path": args.test_data, "name": args.test_data.split('/')[-1].split('.')[0]}],
+    #     datasets=[test_dataset],  # Use test_dataset directly
+    #     phase="val",
+    #     batch_size=batch_size,
+    #     model_class=model,
+    #     threshold=0.5,
+    #     verbose=True,
+    #     output_csv=f'{trainer.weights_dir}/benchmark_results_{names}.csv',
+    #     plot_output=f'{trainer.weights_dir}/benchmark_plot_{names}.png'
+    # )
 
-    print(f"=== Completed cross-dataset training and evaluation ===")
+    # print(f"=== Completed cross-dataset training and evaluation ===")

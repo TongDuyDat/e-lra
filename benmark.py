@@ -7,6 +7,9 @@ from tqdm import tqdm
 from data import DataBenchmark
 from loss_functions import SegmentationMetrics
 from models import DiscriminatorWithConvCRF, DiscriminatorWithLRA, GanModel, Generator
+import numpy as np
+from sklearn.metrics import precision_recall_curve, roc_curve, auc
+
 os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 def benchmark_model(
@@ -241,3 +244,99 @@ def plot_metrics(results_all, output_path):
 #         print(f"\n{dataset_name}:")
 #         for metric, value in metrics.items():
 #             print(f"  {metric.capitalize()}: {value:.4f}")
+def plot_pr_roc_curves(model, dataset, device='cpu', batch_size=32, save_path=None):
+    """
+    Vẽ PR curve và ROC curve cho model trên dataset.
+    
+    Args:
+        model: Model PyTorch đã train.
+        dataset: Dataset PyTorch chứa dữ liệu (images, labels).
+        device (str): Thiết bị để chạy model ('cpu' hoặc 'cuda').
+        batch_size (int): Kích thước batch cho DataLoader.
+        save_path (str, optional): Đường dẫn để lưu figure, nếu None thì hiển thị.
+    
+    Returns:
+        dict: Dictionary chứa AUC của PR và ROC curves.
+    """
+    # Chuyển model sang chế độ đánh giá
+    model.eval()
+    device = torch.device(device)
+    model.to(device)
+    
+    # Tạo DataLoader
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    
+    # Thu thập tất cả dự đoán và nhãn
+    all_preds = []
+    all_targets = []
+    
+    with torch.no_grad():
+        for images, targets in dataloader:
+            images = images.to(device)
+            targets = targets.to(device)
+            
+            # Lấy dự đoán từ model (giả sử model trả về xác suất sigmoid)
+            preds = model(images)
+            if preds.shape[1] == 1:  # Binary segmentation
+                preds = preds.squeeze(1)  # Shape: (bs, h, w)
+            
+            # Chuyển sang numpy và làm phẳng
+            preds = preds.cpu().numpy().flatten()
+            targets = targets.cpu().numpy().flatten()
+            
+            all_preds.extend(preds)
+            all_targets.extend(targets)
+    
+    # Chuyển sang numpy arrays
+    all_preds = np.array(all_preds)
+    all_targets = np.array(all_targets)
+    
+    # Tính Precision-Recall curve
+    precision, recall, _ = precision_recall_curve(all_targets, all_preds)
+    pr_auc = auc(recall, precision)
+    
+    # Tính ROC curve
+    fpr, tpr, _ = roc_curve(all_targets, all_preds)
+    roc_auc = auc(fpr, tpr)
+    
+    # Vẽ curves
+    plt.figure(figsize=(12, 5))
+    
+    # PR Curve
+    plt.subplot(1, 2, 1)
+    plt.plot(recall, precision, label=f'PR Curve (AUC = {pr_auc:.2f})')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend(loc='lower left')
+    plt.grid(True)
+    
+    # ROC Curve
+    plt.subplot(1, 2, 2)
+    plt.plot(fpr, tpr, label=f'ROC Curve (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], 'k--')  # Đường chéo
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    
+    plt.tight_layout()
+    
+    # Lưu hoặc hiển thị
+    if save_path:
+        plt.savefig(save_path)
+        plt.close()
+    else:
+        plt.show()
+    
+    return {'pr_auc': pr_auc, 'roc_auc': roc_auc}
+
+model = YourModel()
+dataset = YourDataset()
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# Vẽ curves và lấy AUC
+results = plot_pr_roc_curves(model, dataset, device=device, batch_size=32, save_path='curves.png')
+print(f"PR AUC: {results['pr_auc']:.4f}")
+print(f"ROC AUC: {results['roc_auc']:.4f}")

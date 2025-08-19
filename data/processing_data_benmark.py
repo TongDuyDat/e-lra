@@ -1,8 +1,8 @@
 import os
-from .processing_CVC import BaseDataset
+from .base_dataset import BaseDataset
 from albumentations import ToTensorV2
 from sklearn.model_selection import train_test_split
-from .processing_CVC import BaseDataset
+from .base_dataset import BaseDataset
 
 
 class DataBenchmark(BaseDataset):
