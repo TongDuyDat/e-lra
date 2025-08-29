@@ -284,7 +284,7 @@ class GANTrainer:
     def measure_inference_time(self, dataset, num_runs_per_image=1, max_images=100):
         """Measure inference time for each image in the dataset on CPU."""
         self.model.eval()
-        self.model.to('cpu')  # Chuyển mô hình sang CPU
+        self.model.to("cpu")  # Chuyển mô hình sang CPU
         self.logger.info("Measuring inference time per image on CPU...")
         print("Measuring inference time per image on CPU...")
 
@@ -298,14 +298,16 @@ class GANTrainer:
             "generator_time_ms",
             "discriminator_time_ms",
             "total_time_ms",
-            "timestamp"
+            "timestamp",
         ]
         results = []
 
         # Duyệt qua từng ảnh
-        for idx, (data, target) in enumerate(tqdm(data_loader, desc="Processing images", unit="image")):
-            data = data.to('cpu').to(torch.float32)
-            target = target.to('cpu').to(torch.float32)
+        for idx, (data, target) in enumerate(
+            tqdm(data_loader, desc="Processing images", unit="image")
+        ):
+            data = data.to("cpu").to(torch.float32)
+            target = target.to("cpu").to(torch.float32)
             if idx > max_images:
                 break
             # Warm-up run cho ảnh hiện tại (tùy chọn, giảm nếu CPU yếu)
@@ -327,7 +329,9 @@ class GANTrainer:
                 start_time = time.time()
                 _ = self.model.discriminator(data, target)
                 end_time = time.time()
-                total_discriminator_time += (end_time - start_time) * 1000  # Chuyển sang ms
+                total_discriminator_time += (
+                    end_time - start_time
+                ) * 1000  # Chuyển sang ms
 
             # Tính trung bình cho ảnh hiện tại
             avg_generator_time = total_generator_time / num_runs_per_image
@@ -341,7 +345,7 @@ class GANTrainer:
                 "generator_time_ms": avg_generator_time,
                 "discriminator_time_ms": avg_discriminator_time,
                 "total_time_ms": total_time,
-                "timestamp": timestamp
+                "timestamp": timestamp,
             }
             results.append(result)
 
@@ -364,7 +368,9 @@ class GANTrainer:
 
         # Tính trung bình trên tất cả ảnh
         avg_generator = sum(r["generator_time_ms"] for r in results) / len(results)
-        avg_discriminator = sum(r["discriminator_time_ms"] for r in results) / len(results)
+        avg_discriminator = sum(r["discriminator_time_ms"] for r in results) / len(
+            results
+        )
         avg_total = sum(r["total_time_ms"] for r in results) / len(results)
 
         log_message = (
@@ -611,11 +617,13 @@ if __name__ == "__main__":
     parser.add_argument("--config", default="configs/train_config.py")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--names", type=str, default=None)
+    parser.add_argument("--protocol", type=int, default=3)
     args = parser.parse_args()
 
     trainer_config_path = args.config
     batch_size = args.batch_size
     names = args.names
+    protocol = args.protocol
     # Load training datasets
     train_datasets = []
     for config_path in args.train_data:
@@ -636,13 +644,13 @@ if __name__ == "__main__":
         train_ratio=0.8, seed=42
     )
     print(f"Train split: {len(train_dataset)}, Val split: {len(val_dataset)}")
-
     # Load test dataset
     test_dataset = DataBenchmark(config_path=args.test_data, phase="val")
     print(
         f"Loaded test dataset: {args.test_data.split('/')[-1]}, size: {len(test_dataset)}"
     )
-
+    if protocol == 4:
+        val_dataset, test_dataset = val_dataset.split_data(train_ratio=0.5, seed=42)
     # Initialize a new GAN model
     model = GanModel(
         generator=Generator(input_shape=(3, 256, 256)),
@@ -651,7 +659,9 @@ if __name__ == "__main__":
         version="DiscriminatorWithLRA",
         description=f"GAN for cross-dataset segmentation on {','.join(args.train_data)}",
     )
-
+    print(model)
+    logs = model.count_parameters()
+    print(logs)
     # Initialize and train the GAN trainer
     trainer = GANTrainer(
         model=model,
@@ -662,8 +672,8 @@ if __name__ == "__main__":
         names=names,
     )
     # trainer.train()
-    trainer.measure_inference_time(test_dataset, max_images=100)
-    # Benchmark the model on the test set
+    # # trainer.measure_inference_time(test_dataset, max_images=100)
+    # # Benchmark the model on the test set
     # benchmark_model(
     #     f'{trainer.weights_dir}/best_gan_model.pth',
     #     dataset_configs=[{"config_path": args.test_data, "name": args.test_data.split('/')[-1].split('.')[0]}],

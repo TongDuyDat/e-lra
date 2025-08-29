@@ -31,9 +31,3 @@ def cp_file(file_path, target_path):
 
         # shutil.copy(file, target_path)
 
-
-if __name__ == "__main__":
-    path = "D:/NCKH/NCKH2025/LGPS/datasets/extracts/data_benmarks/ETIS-LaribPolypDB"
-    target_path = "D:/NCKH/NCKH2025/LGPS/datasets/extracts/data_benmarks/ETIS-LaribPolypDB"
-    file_path = load_file(path)
-    cp_file(file_path, target_path)

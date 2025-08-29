@@ -96,7 +96,7 @@ If you use E-LRA in your research, please cite our paper:
 ```bibtex
 @article{,
   title={An Efficient Boundary-Aware Adversarial Model for Polyp Segmentation in Colonoscopy Images},
-  author={},
+  author={Dinh Cong Nguyena, Duy Dat Tong},
   journal={},
   year={}
 }

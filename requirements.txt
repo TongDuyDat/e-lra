@@ -34,6 +34,6 @@ pyyaml==6.0.2
 pydantic==2.11.4
 easydict==1.13
 click==8.2.1
-
+torchprofile
 # Optional: Include only if used
 wandb==0.19.11  # Experiment tracking

@@ -192,58 +192,6 @@ def plot_metrics(results_all, output_path):
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-# if __name__ == "__main__":
-#     # Ví dụ sử dụng
-#     dataset_configs = [
-#         {
-#             'name': 'CVC_ClinicDB',
-#             'config_path': 'data/configs/CVC-ClinicDB.py'
-#         },
-#         {
-#             'name': 'CVC_300',
-#             'config_path': 'data/configs/CVC_300.py'
-#         },
-#         {
-#             'name': 'Kvasir_SEG',
-#             'config_path': 'data/configs/kvasir-seg.py'
-#         },
-#         {
-#             'name': 'PolypGen',
-#             'config_path': 'data/configs/PolypGen.py'
-#         },
-#         {
-#             'name': 'ETIS_LaribPolypDB',
-#             'config_path': 'data/configs/ETIS-LaribPolypDB.py'
-#         },
-#         {
-#             'name': 'kvasir-sessile',
-#             'config_path': 'data/configs/kvasir-sessile.py'
-#         },
-#         {
-#             "name": "CVC-ColonDB",
-#             "config_path": "data/configs/CVC-ColonDB.py"
-#         }
-#         # Thêm các dataset khác nếu có
-#         # {
-#         #     'name': 'Another_Dataset',
-#         #     'config_path': 'data/configs/another_config.py'
-#         # }
-#     ]
-
-#     results = benchmark_model(
-#         model_path="best_gan_model_LRA.pth",
-#         dataset_configs=dataset_configs,
-#         phase="val",
-#         batch_size=8,
-#         verbose=True
-#     )
-
-#     # In lại tất cả kết quả
-#     print("\nSummary of all results:")
-#     for dataset_name, metrics in results.items():
-#         print(f"\n{dataset_name}:")
-#         for metric, value in metrics.items():
-#             print(f"  {metric.capitalize()}: {value:.4f}")
 def plot_pr_roc_curves(model, dataset, device='cpu', batch_size=32, save_path=None):
     """
     Vẽ PR curve và ROC curve cho model trên dataset.
@@ -258,7 +206,6 @@ def plot_pr_roc_curves(model, dataset, device='cpu', batch_size=32, save_path=No
     Returns:
         dict: Dictionary chứa AUC của PR và ROC curves.
     """
-    # Chuyển model sang chế độ đánh giá
     model.eval()
     device = torch.device(device)
     model.to(device)
@@ -266,7 +213,6 @@ def plot_pr_roc_curves(model, dataset, device='cpu', batch_size=32, save_path=No
     # Tạo DataLoader
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     
-    # Thu thập tất cả dự đoán và nhãn
     all_preds = []
     all_targets = []
     
@@ -275,19 +221,16 @@ def plot_pr_roc_curves(model, dataset, device='cpu', batch_size=32, save_path=No
             images = images.to(device)
             targets = targets.to(device)
             
-            # Lấy dự đoán từ model (giả sử model trả về xác suất sigmoid)
             preds = model(images)
-            if preds.shape[1] == 1:  # Binary segmentation
+            if preds.shape[1] == 1:  
                 preds = preds.squeeze(1)  # Shape: (bs, h, w)
             
-            # Chuyển sang numpy và làm phẳng
             preds = preds.cpu().numpy().flatten()
             targets = targets.cpu().numpy().flatten()
             
             all_preds.extend(preds)
             all_targets.extend(targets)
     
-    # Chuyển sang numpy arrays
     all_preds = np.array(all_preds)
     all_targets = np.array(all_targets)
     
@@ -301,8 +244,6 @@ def plot_pr_roc_curves(model, dataset, device='cpu', batch_size=32, save_path=No
     
     # Vẽ curves
     plt.figure(figsize=(12, 5))
-    
-    # PR Curve
     plt.subplot(1, 2, 1)
     plt.plot(recall, precision, label=f'PR Curve (AUC = {pr_auc:.2f})')
     plt.xlabel('Recall')
@@ -331,12 +272,3 @@ def plot_pr_roc_curves(model, dataset, device='cpu', batch_size=32, save_path=No
         plt.show()
     
     return {'pr_auc': pr_auc, 'roc_auc': roc_auc}
-
-model = YourModel()
-dataset = YourDataset()
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-# Vẽ curves và lấy AUC
-results = plot_pr_roc_curves(model, dataset, device=device, batch_size=32, save_path='curves.png')
-print(f"PR AUC: {results['pr_auc']:.4f}")
-print(f"ROC AUC: {results['roc_auc']:.4f}")
