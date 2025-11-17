@@ -145,11 +145,9 @@ class GanModel(nn.Module):
             Dictionary chứa số tham số (M) và GFLOPs của Generator và Discriminator (nếu có)
         """
 
-        # Hàm phụ để tính tham số
         def get_num_params(model: nn.Module) -> int:
             return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-        # Hàm phụ để tính MACs và chuyển thành GFLOPs
         def get_gflops(model: nn.Module, input_tensor: torch.Tensor) -> float:
             model.eval()
             macs = profile_macs(model, input_tensor)

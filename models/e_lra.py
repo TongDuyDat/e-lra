@@ -1,6 +1,6 @@
 from torch import nn
 import torch
-
+from .layers import CBAM, ECA
 
 class ConvBaseBlock(nn.Module):
     def __init__(
@@ -68,7 +68,9 @@ class LRA(nn.Module):
         self.point_conv = nn.Conv2d(
             in_channels, out_channels, kernel_size=1, stride=1
         )
-        self.se_block = SqueezeExcitationBlock(out_channels)
+        # self.se_block = CBAM(out_channels, r = 16)
+        self.se_block = SqueezeExcitationBlock(out_channels, reduction_ratio=16)
+        # self.se_block = ECA(out_channels)
 
     def forward(self, x):
         shortcut = x
