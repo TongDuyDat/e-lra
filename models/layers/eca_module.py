@@ -1,6 +1,11 @@
+# Implementation based on ECA-Net: Efficient Channel Attention for Deep Convolutional Neural Networks
+# Paper: https://arxiv.org/abs/1910.03151 (CVPR 2020)
+# Original code: https://github.com/BangguWu/ECANet
+
 import torch
 from torch import nn
 from torch.nn.parameter import Parameter
+
 
 class ECA(nn.Module):
     """Constructs a ECA module.
@@ -9,10 +14,13 @@ class ECA(nn.Module):
         channel: Number of channels of the input feature map
         k_size: Adaptive selection of kernel size
     """
+
     def __init__(self, channel, k_size=3):
         super(ECA, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False) 
+        self.conv = nn.Conv1d(
+            1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False
+        )
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -26,4 +34,3 @@ class ECA(nn.Module):
         y = self.sigmoid(y)
 
         return x * y.expand_as(x)
-        

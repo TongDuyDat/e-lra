@@ -1,4 +1,3 @@
-# The file reference from https://github.com/Falmi/LGPS/
 import torch
 import numpy as np
 from torch import nn
@@ -6,6 +5,12 @@ from utils import check_target_range
 
 
 class DiceLoss(torch.nn.Module):
+    """Dice Loss for binary segmentation.
+
+    Based on Dice coefficient from: V-Net: Fully Convolutional Neural Networks
+    for Volumetric Medical Image Segmentation (Milletari et al., 2016)
+    """
+
     def __init__(self, smooth=1e-6):
         super(DiceLoss, self).__init__()
         self.smooth = smooth
@@ -23,6 +28,12 @@ class DiceLoss(torch.nn.Module):
 
 
 class WIoULoss(torch.nn.Module):
+    """Weighted IoU Loss combining foreground and background IoU.
+
+    Computes weighted combination of foreground and background IoU scores
+    to handle class imbalance in segmentation tasks.
+    """
+
     def __init__(self, alpha=0.7, smooth=1e-6):
         super(WIoULoss, self).__init__()
         self.smooth = smooth
@@ -50,6 +61,12 @@ class WIoULoss(torch.nn.Module):
 
 
 class BCELoss(torch.nn.Module):
+    """Binary Cross Entropy Loss - custom implementation.
+
+    Note: PyTorch provides nn.BCELoss() as a built-in alternative.
+    This is a manual implementation of the BCE formula.
+    """
+
     def __init__(self, smooth=1e-6):
         super(BCELoss, self).__init__()
         self.smooth = smooth
@@ -65,6 +82,18 @@ class BCELoss(torch.nn.Module):
 
 
 class CombinedLoss(torch.nn.Module):
+    """Combined loss function using weighted sum of BCE, IoU, and Dice losses.
+
+    This is a common approach in medical image segmentation to leverage
+    multiple complementary loss functions. The combination helps to balance
+    region-based (Dice, IoU) and pixel-wise (BCE) optimization.
+
+    Args:
+        alpha: Weight for foreground/background in IoU loss
+        smooth: Smoothing term to avoid division by zero
+        lamda: List of weights [w_bce, w_iou, w_dice] for combining losses
+    """
+
     def __init__(self, alpha=0.7, smooth=1e-6, lamda=[0.4, 0.3, 0.3]):
         super(CombinedLoss, self).__init__()
         self.iou_loss = WIoULoss(alpha, smooth)
@@ -75,7 +104,7 @@ class CombinedLoss(torch.nn.Module):
     def forward(self, predicts, tagets):
         if check_target_range(tagets):
             print("Target có giá trị ngoài khoảng [0, 1]")
-            return torch.tensor(float('nan'))
+            return torch.tensor(float("nan"))
         bce_loss_value = self.bce(predicts, tagets)
         iou_loss_value = self.iou_loss(predicts, tagets)
         dice_loss_value = self.dice_loss(predicts, tagets)
@@ -83,15 +112,15 @@ class CombinedLoss(torch.nn.Module):
         # Kiểm tra xem mỗi loss có phải là NaN không
         if torch.isnan(bce_loss_value):
             print("BCE Loss có giá trị NaN")
-            return torch.tensor(float('nan'))
-            
+            return torch.tensor(float("nan"))
+
         if torch.isnan(iou_loss_value):
             print("IOU Loss có giá trị NaN")
-            return torch.tensor(float('nan'))
-            
+            return torch.tensor(float("nan"))
+
         if torch.isnan(dice_loss_value):
             print("Dice Loss có giá trị NaN")
-            return torch.tensor(float('nan'))
+            return torch.tensor(float("nan"))
         combined_loss = (
             self.lamda[0] * bce_loss_value
             + self.lamda[1] * iou_loss_value

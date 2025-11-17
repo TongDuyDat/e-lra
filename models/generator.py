@@ -1,11 +1,15 @@
-# The file reference from https://github.com/Falmi/LGPS/
 import torch
 import torch.nn as nn
 import torchvision.models as models
 from torchvision.models import MobileNet_V2_Weights
 
+
 class SqueezeExcitationBlock(nn.Module):
-    """Squeeze and Excitation block to recalibrate feature maps."""
+    """Squeeze and Excitation block to recalibrate feature maps.
+
+    Based on: Squeeze-and-Excitation Networks (CVPR 2018)
+    Paper: https://arxiv.org/abs/1709.01507
+    """
 
     def __init__(self, in_channels, reduction_ratio=16):
         super(SqueezeExcitationBlock, self).__init__()
@@ -36,7 +40,7 @@ class ModifiedResidualBlock(nn.Module):
         # 1x1 convolution (bottleneck)
         self.conv1 = nn.Conv2d(in_channels, self.filters, kernel_size=1, padding=0)
         self.bn1 = nn.BatchNorm2d(self.filters)
-        self.relu1 = nn.ReLU()
+        self.relu1 = nn.LeakyReLU(negative_slope=0.01, inplace=False)()
 
         # 3x3 convolution
         self.conv2 = nn.Conv2d(self.filters, self.filters, kernel_size=3, padding=1)
@@ -52,7 +56,7 @@ class ModifiedResidualBlock(nn.Module):
             nn.BatchNorm2d(self.filters) if in_channels != self.filters else None
         )
 
-        self.relu2 = nn.ReLU()
+        self.relu2 = nn.LeakyReLU(negative_slope=0.01, inplace=False)()
         self.se_block = SqueezeExcitationBlock(self.filters)
 
     def forward(self, x):

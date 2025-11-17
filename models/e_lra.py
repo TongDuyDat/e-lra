@@ -2,6 +2,7 @@ from torch import nn
 import torch
 from .layers import CBAM, ECA
 
+
 class ConvBaseBlock(nn.Module):
     def __init__(
         self,
@@ -31,7 +32,10 @@ class ConvBaseBlock(nn.Module):
 
 
 class SqueezeExcitationBlock(nn.Module):
-    """Squeeze and Excitation block to recalibrate feature maps."""
+    """Squeeze-and-Excitation block based on:
+        Paper: Squeeze-and-Excitation Networks (CVPR 2018) - https://arxiv.org/abs/1709.01507
+        Squeeze and Excitation block to recalibrate feature maps.
+    """
 
     def __init__(self, in_channels, reduction_ratio=16):
         super(SqueezeExcitationBlock, self).__init__()

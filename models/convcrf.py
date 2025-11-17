@@ -1,4 +1,3 @@
-# The file reference from https://github.com/Falmi/LGPS/
 from torch import nn
 import torch
 class ConCRF(nn.Module):
