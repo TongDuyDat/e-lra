@@ -94,12 +94,15 @@ E-LRA has been validated on the following benchmark datasets:
 ## Citation
 If you use E-LRA in your research, please cite our paper:
 ```bibtex
-@article{,
-  title={An Efficient Boundary-Aware Adversarial Model for Polyp Segmentation in Colonoscopy Images},
-  author={Dinh Cong Nguyen, Duy Dat Tong},
-  journal={},
-  year={}
-}
+Dinh Cong Nguyen, Duy Dat Tong,
+An efficient boundary-aware adversarial model for polyp segmentation in colonoscopy images,
+Biomedical Signal Processing and Control,
+Volume 113, Part D,
+2026,
+109231,
+ISSN 1746-8094,
+https://doi.org/10.1016/j.bspc.2025.109231.
+(https://www.sciencedirect.com/science/article/pii/S1746809425017422)
 ```
 
 ## License
